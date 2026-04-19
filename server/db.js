@@ -24,9 +24,13 @@ if (process.env.VERCEL) {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
 
-    // Store database in the root of the project (outside server directory)
-    // so it persists between server restarts/changes.
-    const dbPath = path.resolve(__dirname, '../tekboss.db');
+    // On Railway: use the persistent volume mount so data survives redeployments.
+    // Locally: use the project root.
+    const volumeMount = process.env.RAILWAY_VOLUME_MOUNT_PATH;
+    const dbPath = volumeMount
+        ? path.join(volumeMount, 'tekboss.db')
+        : path.resolve(__dirname, '../tekboss.db');
+    console.log(`[DB] Using database at: ${dbPath}`);
     db = new Database(dbPath);
 
     // Enable WAL mode for better concurrent performance

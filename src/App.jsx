@@ -564,8 +564,9 @@ export default function App() {
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6 md:px-12 pb-8">
             <div className="max-w-4xl mx-auto">
               <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.05] tracking-tighter mb-8">
-                Stop Guessing How to Use AI{' '}
-                <span className="bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">in Your Business.</span>
+                Stop Guessing<br />
+                How to Use AI<br />
+                <span className="text-blue-400/80">in Your Business.</span>
               </h1>
               <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed font-medium">
                 In minutes, see exactly what to automate, where time is being lost, and a clear path for how your business can operate over the next 90 days.
@@ -596,7 +597,7 @@ export default function App() {
 
               {/* Read More Toggle */}
               <button
-                onClick={() => setShowReadMore && setShowReadMore(prev => !prev)}
+                onClick={() => document.getElementById('learn-more')?.scrollIntoView({ behavior: 'smooth' })}
                 className="mt-8 text-slate-600 hover:text-slate-400 text-[10px] font-bold uppercase tracking-[0.25em] transition-colors flex items-center gap-2 mx-auto"
               >
                 Learn more below
@@ -606,7 +607,7 @@ export default function App() {
           </div>
 
           {/* Collapsible Info Section */}
-          <div className="max-w-2xl mx-auto px-6 pb-8">
+          <div id="learn-more" className="max-w-2xl mx-auto px-6 pb-8">
             <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-left">
               <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-500 mb-4">What to expect</p>
               <ul className="space-y-3 text-sm text-slate-400 font-medium">

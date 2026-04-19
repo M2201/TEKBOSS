@@ -379,7 +379,7 @@ app.get('/api/blueprints/:id', requireStrictAuth, (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STRIPE CHECKOUT — Create a $599 one-time payment session
+// STRIPE CHECKOUT — $599 one-time + silent $34.99/mo subscription after 90 days
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/create-checkout-session', async (req, res) => {
     if (!stripe) {
@@ -397,13 +397,16 @@ app.post('/api/create-checkout-session', async (req, res) => {
                     currency: 'usd',
                     product_data: {
                         name: 'The TEK BOSS AI Blueprint',
-                        description: 'Complete AI Business Operating System — Named Systems, 90-Day Roadmap, Tool Stack, Prompt Templates, SOW, and 90 days Implementation Assistant access.',
+                        description: 'Complete AI Business Operating System — Named Systems, 90-Day Roadmap, Tool Stack, Prompt Templates, SOW, and 90-Day Guided Build-Out Assistant.',
                     },
                     unit_amount: 59900, // $599.00 in cents
                 },
                 quantity: 1,
             }],
             mode: 'payment',
+            payment_intent_data: {
+                setup_future_usage: 'off_session', // Save card for future $34.99/mo charges
+            },
             success_url: `${origin}/?payment=success&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${origin}/?payment=cancelled`,
             metadata: {
@@ -422,9 +425,10 @@ app.post('/api/create-checkout-session', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// VERIFY PAYMENT — Confirm a Stripe session was paid before generating blueprint
+// VERIFY PAYMENT — Confirm payment, save card, create $34.99/mo subscription
+// with 90-day free trial for the guided build-out assistant
 // ─────────────────────────────────────────────────────────────────────────────
-app.post('/api/verify-payment', async (req, res) => {
+app.post('/api/verify-payment', requireAuth, async (req, res) => {
     if (!stripe) {
         return res.status(500).json({ error: 'Stripe is not configured.' });
     }
@@ -435,10 +439,80 @@ app.post('/api/verify-payment', async (req, res) => {
     }
 
     try {
-        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        const session = await stripe.checkout.sessions.retrieve(sessionId, {
+            expand: ['payment_intent', 'payment_intent.payment_method'],
+        });
 
         if (session.payment_status === 'paid') {
             console.log(`✅ Payment verified for session: ${sessionId}`);
+
+            // ── Create $34.99/mo subscription with 90-day trial ──────────
+            const userId = req.user?.id;
+            if (userId && stripe) {
+                try {
+                    // Get or create Stripe customer
+                    let customerId;
+                    const existingUser = db.prepare('SELECT stripe_customer_id FROM users WHERE id = ?').get(userId);
+                    
+                    if (existingUser?.stripe_customer_id) {
+                        customerId = existingUser.stripe_customer_id;
+                    } else {
+                        const customer = await stripe.customers.create({
+                            email: session.customer_details?.email,
+                            metadata: { userId, businessName: session.metadata?.businessName },
+                        });
+                        customerId = customer.id;
+                        db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, userId);
+                    }
+
+                    // Attach the payment method from the checkout to the customer
+                    const paymentMethodId = session.payment_intent?.payment_method?.id || session.payment_intent?.payment_method;
+                    if (paymentMethodId) {
+                        try {
+                            await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
+                            await stripe.customers.update(customerId, {
+                                invoice_settings: { default_payment_method: paymentMethodId },
+                            });
+                        } catch (attachErr) {
+                            // Payment method may already be attached
+                            console.log('Payment method attach note:', attachErr.message);
+                        }
+                    }
+
+                    // Create the $34.99/mo subscription with 90-day trial
+                    const subscription = await stripe.subscriptions.create({
+                        customer: customerId,
+                        items: [{
+                            price_data: {
+                                currency: 'usd',
+                                product_data: {
+                                    name: 'TEK BOSS AI Build-Out Assistant',
+                                    description: 'Your AI-guided build-out coach — continues after the 90-day included period.',
+                                },
+                                recurring: { interval: 'month' },
+                                unit_amount: 3499, // $34.99
+                            },
+                        }],
+                        trial_period_days: 90,
+                        metadata: { userId, product: 'tek-boss-assistant' },
+                    });
+
+                    const trialEnd = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+                    db.prepare(`UPDATE users SET 
+                        stripe_subscription_id = ?, 
+                        subscription_status = 'trialing',
+                        subscription_ends_at = ?,
+                        trial_started_at = datetime('now')
+                        WHERE id = ?`
+                    ).run(subscription.id, trialEnd, userId);
+
+                    console.log(`🔁 Subscription created: ${subscription.id} (90-day trial, then $34.99/mo)`);
+                } catch (subErr) {
+                    // Don't block blueprint generation if subscription creation fails
+                    console.error('⚠️ Subscription creation note:', subErr.message);
+                }
+            }
+
             return res.json({
                 paid: true,
                 customerEmail: session.customer_details?.email || null,
@@ -451,6 +525,71 @@ app.post('/api/verify-payment', async (req, res) => {
     } catch (err) {
         console.error('💥 Payment verification error:', err.message);
         return res.status(500).json({ error: 'Failed to verify payment: ' + err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUBSCRIPTION STATUS — Check if assistant access is active
+// ─────────────────────────────────────────────────────────────────────────────
+app.get('/api/subscription-status', requireAuth, (req, res) => {
+    if (!req.user) return res.json({ active: false, reason: 'not_authenticated' });
+
+    try {
+        const user = db.prepare('SELECT subscription_status, subscription_ends_at, trial_started_at FROM users WHERE id = ?').get(req.user.id);
+        if (!user) return res.json({ active: false, reason: 'user_not_found' });
+
+        const status = user.subscription_status || 'none';
+        const endsAt = user.subscription_ends_at ? new Date(user.subscription_ends_at) : null;
+        const now = new Date();
+
+        // Active if trialing or active and not past end date
+        const isActive = (status === 'trialing' || status === 'active') && (!endsAt || endsAt > now);
+        const daysRemaining = endsAt ? Math.max(0, Math.ceil((endsAt - now) / (1000 * 60 * 60 * 24))) : 0;
+        const isWarningPeriod = daysRemaining > 0 && daysRemaining <= 10;
+
+        return res.json({
+            active: isActive,
+            status,
+            daysRemaining,
+            endsAt: endsAt?.toISOString() || null,
+            isWarningPeriod,
+            monthlyRate: '$34.99',
+        });
+    } catch (err) {
+        console.error('Subscription status error:', err);
+        return res.status(500).json({ active: false, error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CANCEL SUBSCRIPTION — Cancel the $34.99/mo recurring charge
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/cancel-subscription', requireAuth, async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: 'Not authenticated.' });
+    if (!stripe) return res.status(500).json({ error: 'Stripe not configured.' });
+
+    try {
+        const user = db.prepare('SELECT stripe_subscription_id, subscription_ends_at FROM users WHERE id = ?').get(req.user.id);
+        if (!user?.stripe_subscription_id) {
+            return res.status(400).json({ error: 'No active subscription found.' });
+        }
+
+        // Cancel at period end so they keep access until the trial/period expires
+        await stripe.subscriptions.update(user.stripe_subscription_id, {
+            cancel_at_period_end: true,
+        });
+
+        db.prepare("UPDATE users SET subscription_status = 'cancelled' WHERE id = ?").run(req.user.id);
+
+        console.log(`🚫 Subscription cancelled for user ${req.user.id}`);
+        return res.json({
+            cancelled: true,
+            accessUntil: user.subscription_ends_at,
+            message: 'Your assistant access will continue until the end of your current period. Your blueprint is yours forever.',
+        });
+    } catch (err) {
+        console.error('Cancel subscription error:', err);
+        return res.status(500).json({ error: 'Failed to cancel: ' + err.message });
     }
 });
 

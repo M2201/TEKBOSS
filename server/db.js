@@ -107,6 +107,11 @@ if (process.env.VERCEL) {
         safeAddColumn('blueprints', 'preview_report', 'TEXT');
         safeAddColumn('blueprints', 'paid_at', 'DATETIME');
         safeAddColumn('blueprints', 'assistant_expires_at', 'DATETIME');
+
+        // Subscription tracking
+        safeAddColumn('users', 'subscription_status', "TEXT DEFAULT 'none'"); // none, trialing, active, cancelled, expired
+        safeAddColumn('users', 'subscription_ends_at', 'DATETIME');
+        safeAddColumn('users', 'trial_started_at', 'DATETIME');
     }
 
     initSchema();

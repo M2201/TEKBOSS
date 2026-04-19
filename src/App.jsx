@@ -123,7 +123,7 @@ const Sidebar = ({ stage }) => {
     { id: 2, label: 'Processing', icon: Cpu },
     { id: 3, label: 'Preview Report', icon: BarChart3 },
     { id: 4, label: 'Full Blueprint', icon: FileText, locked: stage < 4 },
-    { id: 5, label: 'Implementation Assistant', icon: Bot, locked: stage < 5 },
+    { id: 5, label: 'Build-Out Coach', icon: Bot, locked: stage < 5 },
   ];
   return (
     <div className="w-72 bg-slate-950 text-slate-400 p-6 flex flex-col h-full border-r border-slate-800/50 flex-shrink-0">
@@ -218,6 +218,10 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // ─── Subscription state ───────────────────────────────────────────────────────
+  const [subscription, setSubscription] = useState({ active: false, status: 'none', daysRemaining: 0, isWarningPeriod: false });
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const assistantBottomRef = useRef(null);
@@ -263,6 +267,21 @@ export default function App() {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [showDisclaimer]);
+
+  // ─── Fetch subscription status when user is set or payment verified ───
+  const fetchSubscriptionStatus = async () => {
+    try {
+      const res = await fetch('/api/subscription-status', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setSubscription(data);
+      }
+    } catch { /* ignore */ }
+  };
+
+  useEffect(() => {
+    if (user) fetchSubscriptionStatus();
+  }, [user, paymentVerified]);
 
   // ─── Restore state after Stripe redirect ─────────────────────────────────
   useEffect(() => {
@@ -935,7 +954,7 @@ export default function App() {
                       <LockedSection icon={Zap} title="Tool Stack & Automation Workflows" description="Specific tool decisions with step-by-step automation workflows — what connects to what, exactly." />
                       <LockedSection icon={FileText} title="Prompt Templates & Brand Voice" description="Copy-paste prompt templates with your brand tone baked in. Plus complete brand governance framework." />
                       <LockedSection icon={ShieldCheck} title="Custom Scope of Work (SOW)" description="Partner-ready implementation document with deliverables, outcomes, and acceptance criteria." />
-                      <LockedSection icon={Bot} title="Implementation Assistant" description="90 days of blueprint-grounded AI support. Ask questions, get guidance specific to YOUR systems." />
+                      <LockedSection icon={Bot} title="90-Day Build-Out Coach" description="Your AI-guided coach walks you through every system — step by step, tailored to your business." />
                     </div>
                   </div>
 
@@ -994,7 +1013,7 @@ export default function App() {
                           </div>
                           <div className="flex items-start gap-3">
                             <CheckCircle size={16} className="text-blue-400 shrink-0 mt-0.5" />
-                            <span className="text-sm text-slate-300 font-medium">Implementation Assistant — 90 Days Included</span>
+                            <span className="text-sm text-slate-300 font-medium">90-Day AI Build-Out Coach — Guided Setup Included</span>
                           </div>
                         </div>
 
@@ -1013,7 +1032,7 @@ export default function App() {
 
                         <div className="mt-4 flex items-center justify-center gap-1 text-[10px] text-slate-500">
                           <Clock size={10} />
-                          <span>After 90 days, Implementation Assistant continues at $50/mo using card on file</span>
+                          <span>Includes 90-day Build-Out Coach · then $34.99/mo · cancel anytime</span>
                         </div>
                       </div>
                     </div>
@@ -1071,18 +1090,18 @@ export default function App() {
                     <Bot size={28} />
                   </div>
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-200 mb-3">Included with your blueprint</p>
-                  <h3 className="text-3xl font-black tracking-tighter mb-4 uppercase">Implementation Assistant</h3>
+                  <h3 className="text-3xl font-black tracking-tighter mb-4 uppercase">90-Day Build-Out Coach</h3>
                   <p className="text-blue-100 text-sm mb-8 max-w-lg leading-relaxed">
-                    Your blueprint-grounded AI guide. Ask questions, get step-by-step help implementing each system. Every response is tailored to YOUR business, YOUR systems, YOUR goals.
+                    Your blueprint-grounded AI guide. It walks you through every system, every integration, every automation — step by step. Every response is built around YOUR business, YOUR systems, YOUR 90-day roadmap.
                   </p>
                   <button
                     onClick={() => setStage(5)}
                     className="bg-white text-blue-700 font-black px-10 py-4 rounded-2xl shadow-xl uppercase tracking-widest text-xs hover:bg-blue-50 transition-all flex items-center gap-2"
                   >
-                    Launch Assistant <ArrowRight size={14} />
+                    Launch Build-Out Coach <ArrowRight size={14} />
                   </button>
                   <p className="text-blue-200/50 text-[10px] font-bold uppercase tracking-widest mt-4">
-                    90 days included · then $50/mo using card on file
+                    90 days included · then $34.99/mo · cancel anytime
                   </p>
                 </div>
               </div>
@@ -1131,7 +1150,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ── STAGE 5: Implementation Assistant ── */}
+        {/* ── STAGE 5: Build-Out Coach ── */}
         {stage === 5 && (
           <div className="flex flex-col h-full">
             {/* Header */}
@@ -1142,19 +1161,66 @@ export default function App() {
                     <Bot size={20} />
                   </div>
                   <div>
-                    <h3 className="font-black text-white text-sm uppercase tracking-tight">Implementation Assistant</h3>
+                    <h3 className="font-black text-white text-sm uppercase tracking-tight">90-Day Build-Out Coach</h3>
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">
                       Grounded in {businessName ? `${businessName}'s` : 'your'} blueprint
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setStage(4)}
-                  className="text-slate-500 hover:text-white text-xs font-bold uppercase tracking-widest flex items-center gap-1 transition-colors"
-                >
-                  <FileText size={12} /> View Blueprint
-                </button>
+                <div className="flex items-center gap-4">
+                  {subscription.daysRemaining > 0 && (
+                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg border ${
+                      subscription.isWarningPeriod
+                        ? 'text-amber-400 bg-amber-950/40 border-amber-800/30'
+                        : 'text-slate-500 bg-slate-900 border-slate-800'
+                    }`}>
+                      {subscription.isWarningPeriod
+                        ? `⚠ Auto-renewal in ${subscription.daysRemaining}d — $34.99/mo`
+                        : `${subscription.daysRemaining} days remaining`}
+                    </span>
+                  )}
+                  {subscription.active && subscription.status !== 'cancelled' && (
+                    <button
+                      onClick={() => setShowCancelConfirm(true)}
+                      className="text-slate-600 hover:text-red-400 text-[10px] font-bold uppercase tracking-widest transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setStage(4)}
+                    className="text-slate-500 hover:text-white text-xs font-bold uppercase tracking-widest flex items-center gap-1 transition-colors"
+                  >
+                    <FileText size={12} /> View Blueprint
+                  </button>
+                </div>
               </div>
+
+              {/* Cancel Confirmation */}
+              {showCancelConfirm && (
+                <div className="mt-4 bg-red-950/30 border border-red-800/20 rounded-xl px-5 py-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-red-200 font-medium">Cancel your Build-Out Coach subscription?</p>
+                    <p className="text-[10px] text-red-400/60 font-medium mt-1">Your blueprint is yours forever. You’ll keep access until the end of your current period.</p>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0 ml-4">
+                    <button
+                      onClick={() => setShowCancelConfirm(false)}
+                      className="text-xs text-slate-400 font-bold uppercase tracking-widest hover:text-white transition-colors px-3 py-2"
+                    >Keep</button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await fetch('/api/cancel-subscription', { method: 'POST', credentials: 'include' });
+                          await fetchSubscriptionStatus();
+                          setShowCancelConfirm(false);
+                        } catch { /* ignore */ }
+                      }}
+                      className="text-xs text-red-400 font-bold uppercase tracking-widest hover:text-red-300 transition-colors bg-red-950/30 border border-red-800/20 rounded-lg px-3 py-2"
+                    >Confirm Cancel</button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Assistant Chat */}
@@ -1164,12 +1230,12 @@ export default function App() {
                   <div className="w-16 h-16 bg-blue-600/10 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-blue-500/20">
                     <Bot size={32} />
                   </div>
-                  <h3 className="text-xl font-black text-white mb-3 uppercase tracking-tight">Your Blueprint Guide</h3>
+                  <h3 className="text-xl font-black text-white mb-3 uppercase tracking-tight">Your Build-Out Coach</h3>
                   <p className="text-slate-400 text-sm max-w-md mx-auto leading-relaxed mb-6">
-                    Ask me anything about implementing your AI Blueprint. I'll reference your specific systems, tools, and roadmap.
+                    I'll walk you through every system in your blueprint — from setup to launch. Each answer is built around your specific business, tools, and 90-day roadmap.
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center max-w-lg mx-auto">
-                    {['Where do I start with Phase 1?', 'Walk me through my first automation', 'How do my systems connect?', 'What tool should I set up first?'].map((q, i) => (
+                    {['Where do I start with Week 1?', 'Walk me through my first automation', 'What should I set up first?', 'How do I connect my systems?'].map((q, i) => (
                       <button
                         key={i}
                         onClick={() => { setAssistantInput(q); setTimeout(() => assistantInputRef.current?.focus(), 100); }}

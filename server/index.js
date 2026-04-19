@@ -37,7 +37,9 @@ const API_KEY = process.env.GEMINI_API_KEY;
 
 // ─── Stripe Setup ─────────────────────────────────────────────────────────────
 const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY;
-const stripe = STRIPE_SECRET ? new Stripe(STRIPE_SECRET) : null;
+const stripe = STRIPE_SECRET ? new Stripe(STRIPE_SECRET, {
+    httpClient: Stripe.createFetchHttpClient(),
+}) : null;
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());

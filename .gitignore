@@ -36,3 +36,4 @@ server/.env
 *.njsproj
 *.sln
 *.sw?
+.vercel

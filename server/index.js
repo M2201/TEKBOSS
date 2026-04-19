@@ -504,22 +504,27 @@ app.use((err, req, res, next) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// START SERVER
+// START SERVER (skip when imported by Vercel)
 // ─────────────────────────────────────────────────────────────────────────────
-const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
-const server = app.listen(PORT, HOST, () => {
-    console.log(`\n🧠 The TEK BOSS AI Blueprint — Server Online — port ${PORT}`);
-    console.log(`   Gemini API Key: ${API_KEY ? '✅ loaded' : '❌ MISSING'}`);
-    console.log(`   Stripe:         ${stripe ? '✅ loaded (test mode)' : '❌ MISSING'}`);
-    console.log(`   Routes:`);
-    console.log(`     /api/health | /api/questions | /api/follow-up`);
-    console.log(`     /api/generate-preview | /api/generate-blueprint`);
-    console.log(`     /api/create-checkout-session | /api/verify-payment`);
-    console.log(`     /api/assistant | /api/request-dfy`);
-    console.log(`     /api/blueprints\n`);
-});
+if (!process.env.VERCEL) {
+    const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
+    const server = app.listen(PORT, HOST, () => {
+        console.log(`\n🧠 The TEK BOSS AI Blueprint — Server Online — port ${PORT}`);
+        console.log(`   Gemini API Key: ${API_KEY ? '✅ loaded' : '❌ MISSING'}`);
+        console.log(`   Stripe:         ${stripe ? '✅ loaded (test mode)' : '❌ MISSING'}`);
+        console.log(`   Routes:`);
+        console.log(`     /api/health | /api/questions | /api/follow-up`);
+        console.log(`     /api/generate-preview | /api/generate-blueprint`);
+        console.log(`     /api/create-checkout-session | /api/verify-payment`);
+        console.log(`     /api/assistant | /api/request-dfy`);
+        console.log(`     /api/blueprints\n`);
+    });
 
-// Keep connections alive for up to 5 minutes — Gemini generation can take 30-90s
-// and Node's default keepAliveTimeout can drop long-running requests mid-stream.
-server.keepAliveTimeout = 300000;
-server.headersTimeout = 306000;
+    // Keep connections alive for up to 5 minutes — Gemini generation can take 30-90s
+    // and Node's default keepAliveTimeout can drop long-running requests mid-stream.
+    server.keepAliveTimeout = 300000;
+    server.headersTimeout = 306000;
+}
+
+// Export for Vercel serverless
+export default app;

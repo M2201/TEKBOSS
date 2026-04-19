@@ -551,7 +551,7 @@ export default function App() {
             <div className="flex justify-center mb-6">
               <BrandLogo size="hero" className="rounded-3xl border border-blue-500/20 shadow-xl" />
             </div>
-            <h2 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase">The TEK BOSS AI Blueprint</h2>
+            <h2 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase">TEK BOSS AI Blueprint</h2>
             <p className="text-blue-400 text-xs font-bold tracking-[0.25em] uppercase mb-6">
               Embed AI Into Your Business
             </p>
@@ -769,7 +769,7 @@ export default function App() {
                           <BrandLogo size="xl" className="rounded-2xl border border-blue-500/20 shadow-lg" />
                         </div>
 
-                        <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2">The TEK BOSS AI Blueprint</h3>
+                        <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2">TEK BOSS AI Blueprint</h3>
                         <p className="text-blue-300/60 text-xs font-bold uppercase tracking-[0.2em] mb-6">Complete AI Business Operating System</p>
                         
                         <div className="text-5xl font-black text-white mb-8">

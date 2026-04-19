@@ -95,18 +95,18 @@ const HelpPanel = ({ question, onClose }) => (
   </div>
 );
 
-// ─── Locked Section Card ──────────────────────────────────────────────────────
+// ─── Unlock Section Card ──────────────────────────────────────────────────────
 const LockedSection = ({ icon: Icon, title, description }) => (
-  <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 relative overflow-hidden group hover:border-blue-500/30 transition-all">
+  <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 relative overflow-hidden group hover:border-blue-500/30 hover:scale-[1.02] transition-all cursor-pointer">
     <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
     <div className="relative flex items-start gap-4">
-      <div className="w-10 h-10 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center flex-shrink-0">
-        <Icon size={18} className="text-slate-500" />
+      <div className="w-10 h-10 bg-blue-600/10 border border-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600/20 transition-colors">
+        <Icon size={18} className="text-blue-400" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <h4 className="font-black text-white text-sm uppercase tracking-tight">{title}</h4>
-          <Lock size={12} className="text-slate-600" />
+          <Sparkles size={12} className="text-blue-500/60 group-hover:text-blue-400 transition-colors" />
         </div>
         <p className="text-xs text-slate-500 leading-relaxed">{description}</p>
       </div>
@@ -543,43 +543,87 @@ export default function App() {
     <div className="flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
       <div className="fixed top-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/5 blur-[150px] rounded-full pointer-events-none z-0" />
 
-      {/* ── Disclaimer overlay ── */}
+      {/* ── Landing Page Hero ── */}
       {showDisclaimer && (
-        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-50 flex items-center justify-center p-4">
-          <div className="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-[3rem] p-12 text-center shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
-            <div className="flex justify-center mb-6">
-              <BrandLogo size="hero" className="rounded-3xl border border-blue-500/20 shadow-xl" />
+        <div className="fixed inset-0 bg-slate-950 z-50 flex flex-col overflow-y-auto">
+          {/* Nav Bar */}
+          <nav className="flex items-center justify-between px-6 md:px-12 py-4 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <BrandLogo size="sm" className="shadow-lg shadow-blue-500/20" />
+              <span className="font-black text-white text-sm tracking-tight uppercase">TEK BOSS</span>
             </div>
-            <h2 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase">TEK BOSS AI Blueprint</h2>
-            <p className="text-blue-400 text-xs font-bold tracking-[0.25em] uppercase mb-6">
-              Embed AI Into Your Business
-            </p>
-            <p className="text-slate-300 text-sm mb-3 leading-relaxed font-medium">
-              Streamline operations, automate workflows, and run more efficiently—Period.
-            </p>
-            <p className="text-slate-500 text-xs mb-3 leading-relaxed">
-              Think of this as your <strong className="text-slate-300">AI cheat code</strong> — designed to upgrade how your business runs, not replace it.
-            </p>
-            <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 mb-6 text-left">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-500 mb-3">What to expect</p>
-              <ul className="space-y-2 text-sm text-slate-400 font-medium">
-                <li className="flex items-start gap-2"><CheckCircle size={14} className="text-blue-500 shrink-0 mt-0.5" /> <span><strong className="text-white">23 questions</strong> asked one at a time, conversational format</span></li>
-                <li className="flex items-start gap-2"><CheckCircle size={14} className="text-blue-500 shrink-0 mt-0.5" /> <span><strong className="text-white">Free Preview Report</strong> with business health & opportunity analysis</span></li>
-                <li className="flex items-start gap-2"><CheckCircle size={14} className="text-blue-500 shrink-0 mt-0.5" /> <span><strong className="text-white">Full AI Blueprint</strong> with named systems, tools, and 90-day plan</span></li>
-              </ul>
-            </div>
-            <p className="text-slate-600 text-[10px] mb-8 leading-relaxed italic">
-              Strategic projections are algorithmic estimates based on provided data. Final authority rests with the User.
-            </p>
             <button
-              id="begin-interview-btn"
               onClick={() => setShowDisclaimer(false)}
-              className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl hover:bg-blue-500 uppercase tracking-widest text-xs shadow-xl shadow-blue-900/40 flex items-center justify-center gap-2 transition-all"
+              className="bg-blue-600 text-white font-black px-6 py-2.5 rounded-xl hover:bg-blue-500 uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-blue-900/30"
             >
-              Begin Discovery Interview <ChevronRight size={16} />
+              Start Free →
             </button>
+          </nav>
+
+          {/* Hero Section */}
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-6 md:px-12 pb-8">
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.05] tracking-tighter mb-8">
+                Stop Guessing How to Use AI{' '}
+                <span className="bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">in Your Business.</span>
+              </h1>
+              <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed font-medium">
+                In minutes, see exactly what to automate, where time is being lost, and a clear path for how your business can operate over the next 90 days.
+              </p>
+
+              {/* Video Button */}
+              <a
+                href="#video"
+                onClick={(e) => { e.preventDefault(); /* TODO: Replace with your video URL */ alert('Video coming soon! Replace this with your explainer video URL.'); }}
+                className="inline-flex items-center gap-4 bg-slate-900/80 border border-green-500/30 rounded-2xl px-8 py-5 mb-6 hover:border-green-400/50 hover:bg-slate-900 transition-all group cursor-pointer"
+              >
+                <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
+                  <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-green-400 ml-1" />
+                </div>
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-white">Watch the 2.5 Min. Explainer Video</span>
+              </a>
+
+              {/* Primary CTA */}
+              <div>
+                <button
+                  id="begin-interview-btn"
+                  onClick={() => setShowDisclaimer(false)}
+                  className="bg-white text-slate-950 font-black px-12 py-5 rounded-2xl hover:bg-slate-200 uppercase tracking-widest text-xs shadow-xl flex items-center justify-center gap-2 transition-all mx-auto"
+                >
+                  Start Your Free Analysis <ArrowRight size={16} />
+                </button>
+              </div>
+
+              {/* Read More Toggle */}
+              <button
+                onClick={() => setShowReadMore && setShowReadMore(prev => !prev)}
+                className="mt-8 text-slate-600 hover:text-slate-400 text-[10px] font-bold uppercase tracking-[0.25em] transition-colors flex items-center gap-2 mx-auto"
+              >
+                Learn more below
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+              </button>
+            </div>
           </div>
+
+          {/* Collapsible Info Section */}
+          <div className="max-w-2xl mx-auto px-6 pb-8">
+            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-left">
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-500 mb-4">What to expect</p>
+              <ul className="space-y-3 text-sm text-slate-400 font-medium">
+                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-blue-500 shrink-0 mt-0.5" /> <span><strong className="text-white">23 questions</strong> asked one at a time, conversational format</span></li>
+                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-blue-500 shrink-0 mt-0.5" /> <span><strong className="text-white">Free Preview Report</strong> with business health & opportunity analysis</span></li>
+                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-blue-500 shrink-0 mt-0.5" /> <span><strong className="text-white">Full AI Blueprint</strong> with named systems, tools, and 90-day plan</span></li>
+              </ul>
+              <p className="text-slate-600 text-[10px] mt-5 leading-relaxed italic">
+                Strategic projections are algorithmic estimates based on provided data. Final authority rests with the User.
+              </p>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <footer className="text-center py-6 text-slate-600 text-xs flex-shrink-0">
+            © 2026 TEK BOSS · privacy@thetekboss.com
+          </footer>
         </div>
       )}
 
@@ -729,11 +773,11 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Locked Sections */}
+                  {/* Unlock Sections */}
                   <div className="mb-10">
                     <div className="text-center mb-8">
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-2">What's inside the full blueprint</p>
-                      <h3 className="text-2xl font-black text-white tracking-tighter uppercase">Locked Sections</h3>
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-500 mb-2">What's inside the full blueprint</p>
+                      <h3 className="text-2xl font-black text-white tracking-tighter uppercase">Unlock These Features</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <LockedSection icon={Layers} title="System Architecture" description="How your named systems connect and interact — the full operating blueprint for your AI-powered business." />

@@ -5,6 +5,7 @@ import {
   ShieldCheck, Send, CheckCircle, AlertTriangle, Sparkles,
   ArrowRight, RefreshCw, HelpCircle, X, Zap, Target,
   TrendingUp, Layers, Bot, ExternalLink, Clock, Star,
+  User, LogOut, Eye, EyeOff, ShieldAlert,
 } from 'lucide-react';
 
 // ─── Static questions — always available, no API needed ───────────────────────
@@ -207,6 +208,16 @@ export default function App() {
   // DFY state
   const [dfySubmitted, setDfySubmitted] = useState(false);
   const [dfyEmail, setDfyEmail] = useState('');
+
+  // ─── Auth state ─────────────────────────────────────────────────────────────
+  const [user, setUser] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState('register'); // 'register' | 'login'
+  const [authForm, setAuthForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
+  const [authError, setAuthError] = useState(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const assistantBottomRef = useRef(null);
@@ -225,6 +236,19 @@ export default function App() {
   useEffect(() => {
     assistantBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [assistantMessages, assistantTyping]);
+
+  // ─── Check auth on mount ────────────────────────────────────────────────
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+        }
+      } catch { /* not logged in */ }
+    })();
+  }, []);
 
   // First question after disclaimer dismissed
   useEffect(() => {
@@ -539,6 +563,101 @@ export default function App() {
     }
   };
 
+  // ─── Auth handlers ──────────────────────────────────────────────────────
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthLoading(true);
+    try {
+      if (authMode === 'register') {
+        if (authForm.password !== authForm.confirmPassword) {
+          throw new Error('Passwords do not match.');
+        }
+        if (authForm.password.length < 8) {
+          throw new Error('Password must be at least 8 characters.');
+        }
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            email: authForm.email,
+            password: authForm.password,
+            fullName: authForm.fullName,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Registration failed.');
+        setUser(data.user);
+      } else {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            email: authForm.email,
+            password: authForm.password,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login failed.');
+        setUser(data.user);
+      }
+      setShowAuthModal(false);
+      setShowDisclaimer(false);
+      setAuthForm({ fullName: '', email: '', password: '', confirmPassword: '' });
+    } catch (err) {
+      setAuthError(err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch { /* ignore */ }
+    setUser(null);
+    setShowDisclaimer(true);
+    setStage(1);
+    setMessages([]);
+    setAnswers({});
+    setCurrentQIndex(0);
+    setPreviewData(null);
+    setBlueprint(null);
+  };
+
+  // ─── Auto-save progress ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (user && Object.keys(answers).length > 0) {
+      try {
+        localStorage.setItem(`tekboss_progress_${user.id}`, JSON.stringify({
+          answers,
+          currentQIndex,
+          messages: messages.slice(-20), // keep last 20 to avoid bloat
+          savedAt: new Date().toISOString(),
+        }));
+      } catch { /* storage full — ignore */ }
+    }
+  }, [answers, currentQIndex, user]);
+
+  // ─── Restore progress on login ──────────────────────────────────────────
+  useEffect(() => {
+    if (user && Object.keys(answers).length === 0) {
+      try {
+        const saved = localStorage.getItem(`tekboss_progress_${user.id}`);
+        if (saved) {
+          const { answers: savedAnswers, currentQIndex: savedIdx, messages: savedMsgs } = JSON.parse(saved);
+          if (savedAnswers && Object.keys(savedAnswers).length > 0) {
+            setAnswers(savedAnswers);
+            setCurrentQIndex(savedIdx || 0);
+            if (savedMsgs) setMessages(savedMsgs);
+          }
+        }
+      } catch { /* bad data — ignore */ }
+    }
+  }, [user]);
+
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
       <div className="fixed top-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/5 blur-[150px] rounded-full pointer-events-none z-0" />
@@ -552,12 +671,34 @@ export default function App() {
               <BrandLogo size="sm" className="shadow-lg shadow-blue-500/20" />
               <span className="font-black text-white text-sm tracking-tight uppercase">TEK BOSS</span>
             </div>
-            <button
-              onClick={() => setShowDisclaimer(false)}
-              className="bg-blue-600 text-white font-black px-6 py-2.5 rounded-xl hover:bg-blue-500 uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-blue-900/30"
-            >
-              Start Free →
-            </button>
+            <div className="flex items-center gap-3">
+              {user ? (
+                <>
+                  <span className="text-xs text-slate-400 font-medium hidden sm:inline">{user.email}</span>
+                  <button
+                    onClick={() => setShowDisclaimer(false)}
+                    className="bg-blue-600 text-white font-black px-6 py-2.5 rounded-xl hover:bg-blue-500 uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-blue-900/30"
+                  >
+                    Continue →
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => { setAuthMode('login'); setShowAuthModal(true); setAuthError(null); }}
+                    className="text-slate-400 hover:text-white font-bold text-[10px] uppercase tracking-widest transition-colors"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={() => { setAuthMode('register'); setShowAuthModal(true); setAuthError(null); }}
+                    className="bg-blue-600 text-white font-black px-6 py-2.5 rounded-xl hover:bg-blue-500 uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-blue-900/30"
+                  >
+                    Start Free →
+                  </button>
+                </>
+              )}
+            </div>
           </nav>
 
           {/* Hero Section */}
@@ -588,7 +729,15 @@ export default function App() {
               <div>
                 <button
                   id="begin-interview-btn"
-                  onClick={() => setShowDisclaimer(false)}
+                  onClick={() => {
+                    if (user) {
+                      setShowDisclaimer(false);
+                    } else {
+                      setAuthMode('register');
+                      setShowAuthModal(true);
+                      setAuthError(null);
+                    }
+                  }}
                   className="bg-white text-slate-950 font-black px-12 py-5 rounded-2xl hover:bg-slate-200 uppercase tracking-widest text-xs shadow-xl flex items-center justify-center gap-2 transition-all mx-auto"
                 >
                   Start Your Free Analysis <ArrowRight size={16} />
@@ -1113,6 +1262,143 @@ export default function App() {
           question={questions.find(q => q.id === activeHelpId)}
           onClose={() => setActiveHelpId(null)}
         />
+      )}
+
+      {/* ── Auth Modal ── */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-[2rem] p-8 max-w-md w-full shadow-2xl relative">
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-4 right-4 text-slate-600 hover:text-white transition-colors"
+            >
+              <X size={18} />
+            </button>
+
+            {/* Logo + Title */}
+            <div className="text-center mb-8">
+              <div className="w-14 h-14 mx-auto mb-4">
+                <BrandLogo size="md" />
+              </div>
+              <h3 className="text-2xl font-black text-white uppercase tracking-tight">
+                {authMode === 'register' ? 'Create Your Account' : 'Welcome Back'}
+              </h3>
+              <p className="text-slate-500 text-xs mt-2 font-medium">
+                {authMode === 'register'
+                  ? 'Save your progress, secure your blueprint, and access it anytime.'
+                  : 'Sign in to resume your analysis or view your blueprint.'}
+              </p>
+            </div>
+
+            {/* Auth Form */}
+            <form onSubmit={handleAuth} className="space-y-4">
+              {authMode === 'register' && (
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block mb-1.5">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={authForm.fullName}
+                    onChange={e => setAuthForm(p => ({ ...p, fullName: e.target.value }))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600 transition-colors"
+                    placeholder="John Smith"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block mb-1.5">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={authForm.email}
+                  onChange={e => setAuthForm(p => ({ ...p, email: e.target.value }))}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600 transition-colors"
+                  placeholder="you@company.com"
+                />
+              </div>
+
+              <div className="relative">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block mb-1.5">Password</label>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  minLength={8}
+                  value={authForm.password}
+                  onChange={e => setAuthForm(p => ({ ...p, password: e.target.value }))}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pr-10 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600 transition-colors"
+                  placeholder="Min. 8 characters"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(p => !p)}
+                  className="absolute right-3 top-[34px] text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              {authMode === 'register' && (
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block mb-1.5">Confirm Password</label>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    minLength={8}
+                    value={authForm.confirmPassword}
+                    onChange={e => setAuthForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600 transition-colors"
+                    placeholder="Re-enter password"
+                  />
+                </div>
+              )}
+
+              {authError && (
+                <div className="bg-red-950/50 border border-red-800/30 rounded-xl px-4 py-3 flex items-center gap-2">
+                  <AlertTriangle size={14} className="text-red-400 flex-shrink-0" />
+                  <p className="text-xs text-red-300 font-medium">{authError}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-500 uppercase tracking-widest text-xs shadow-lg shadow-blue-900/30 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+              >
+                {authLoading ? (
+                  <><RefreshCw size={14} className="animate-spin" /> {authMode === 'register' ? 'Creating Account...' : 'Signing In...'}</>
+                ) : (
+                  <>{authMode === 'register' ? 'Create Account & Start' : 'Sign In'} <ArrowRight size={14} /></>
+                )}
+              </button>
+            </form>
+
+            {/* Toggle */}
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => { setAuthMode(m => m === 'register' ? 'login' : 'register'); setAuthError(null); }}
+                className="text-xs text-slate-500 hover:text-blue-400 font-medium transition-colors"
+              >
+                {authMode === 'register' ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
+              </button>
+            </div>
+
+            {/* Trust Signals */}
+            {authMode === 'register' && (
+              <div className="mt-6 pt-6 border-t border-slate-800">
+                <div className="flex items-center justify-center gap-2 text-[10px] text-slate-600 font-bold uppercase tracking-[0.2em]">
+                  <ShieldAlert size={12} className="text-emerald-600" />
+                  Your data is encrypted and secured
+                </div>
+                <ul className="mt-3 space-y-1.5 text-[10px] text-slate-500 font-medium">
+                  <li className="flex items-center gap-2"><CheckCircle size={10} className="text-emerald-700" /> Save your progress — resume anytime</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={10} className="text-emerald-700" /> Blueprint secured to your account</li>
+                  <li className="flex items-center gap-2"><CheckCircle size={10} className="text-emerald-700" /> Access your documents from any device</li>
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

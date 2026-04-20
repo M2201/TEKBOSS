@@ -1,24 +1,35 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+/**
+ * BRAND DNA GENERATOR AGENT
+ * Constructs a full brand identity profile from intake answers.
+ */
+import { GoogleGenAI } from '@google/genai';
 import { BRAND_DNA_GENERATOR_PROMPT, buildBrandIntelligenceContext } from './prompts.js';
 
 export async function runBrandDnaGenerator(apiKey, executiveSummary, answers) {
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const ai = new GoogleGenAI({ apiKey });
 
   const context = buildBrandIntelligenceContext(executiveSummary, answers);
-  const prompt = `${BRAND_DNA_GENERATOR_PROMPT}\n\n---\n\nDATA TO ANALYZE:\n\n${context}`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
-    // Strip markdown code fences if present
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: [{ role: 'user', parts: [{ text: context }] }],
+      config: {
+        systemInstruction: BRAND_DNA_GENERATOR_PROMPT,
+        temperature: 0.4,
+      },
+    });
+
+    const text = response.text.trim();
     const jsonText = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
-    return JSON.parse(jsonText);
+    const parsed = JSON.parse(jsonText);
+    console.log('✅ Brand DNA Generator complete');
+    return parsed;
   } catch (err) {
-    console.error('Brand DNA generator error:', err.message);
-    // Return a minimal fallback so the pipeline doesn't break
+    console.error('❌ Brand DNA Generator error:', err.message);
+    // Return minimal fallback so downstream doesn't break
     return {
-      brandEssence: { corePromise: '[Pending brand analysis]', positioningStatement: '', uniqueValueProposition: '' },
+      brandEssence: { corePromise: '', positioningStatement: '', uniqueValueProposition: '' },
       brandPersonality: { archetypes: [], personalityTraits: [], antiPersonality: [] },
       voiceAndTone: { primaryVoice: '', toneByContext: {}, forbiddenWords: [], preferredPhrasing: [] },
       visualAesthetic: { colorDescription: '', typographyFeel: '', imageryStyle: '' },

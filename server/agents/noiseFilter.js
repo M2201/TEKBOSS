@@ -1,20 +1,25 @@
 /**
- * THE NOISE FILTER — Operational Efficiency & ROI Calculator Agent
- * Runs the NOISE_FILTER_PROMPT to quantify time/revenue opportunity.
+ * NOISE FILTER AGENT — Operational Efficiency & ROI Calculator
+ * Quantifies recoverable hours/year and dollar value of automation.
  */
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { NOISE_FILTER_PROMPT, buildNoiseFilterContext } from './prompts.js';
 
 export async function runNoiseFilter(apiKey, executiveSummary, validatedData, answers) {
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
+  const ai = new GoogleGenAI({ apiKey });
   const context = buildNoiseFilterContext(executiveSummary, validatedData, answers);
-  const prompt = `${NOISE_FILTER_PROMPT}\n\n---\n\nDATA TO ANALYZE:\n\n${context}`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: [{ role: 'user', parts: [{ text: context }] }],
+      config: {
+        systemInstruction: NOISE_FILTER_PROMPT,
+        temperature: 0.4,
+      },
+    });
+
+    const text = response.text.trim();
     const jsonText = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
     const parsed = JSON.parse(jsonText);
     console.log('✅ Noise Filter complete');

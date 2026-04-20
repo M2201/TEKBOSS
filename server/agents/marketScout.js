@@ -1,4 +1,8 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+/**
+ * MARKET SCOUT AGENT
+ * Competitive intelligence based on named competitors + industry data.
+ */
+import { GoogleGenAI } from '@google/genai';
 import { MARKET_SCOUT_PROMPT, buildMarketScoutContext } from './prompts.js';
 
 export async function runMarketScout(apiKey, executiveSummary, answers) {
@@ -9,19 +13,26 @@ export async function runMarketScout(apiKey, executiveSummary, answers) {
     return null;
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
+  const ai = new GoogleGenAI({ apiKey });
   const context = buildMarketScoutContext(executiveSummary, answers);
-  const prompt = `${MARKET_SCOUT_PROMPT}\n\n---\n\nDATA TO ANALYZE:\n\n${context}`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: [{ role: 'user', parts: [{ text: context }] }],
+      config: {
+        systemInstruction: MARKET_SCOUT_PROMPT,
+        temperature: 0.4,
+      },
+    });
+
+    const text = response.text.trim();
     const jsonText = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
-    return JSON.parse(jsonText);
+    const parsed = JSON.parse(jsonText);
+    console.log('✅ Market Scout complete');
+    return parsed;
   } catch (err) {
-    console.error('Market Scout error:', err.message);
-    return null; // Non-fatal — preview continues without market intel
+    console.error('❌ Market Scout error:', err.message);
+    return null; // Non-fatal
   }
 }

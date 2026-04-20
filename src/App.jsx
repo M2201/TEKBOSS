@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import IntelligenceEngineLoader from './IntelligenceEngineLoader';
 import ReactMarkdown from 'react-markdown';
 import {
   ChevronRight, Cpu, FileText, Lock, MessageSquare, BarChart3,
@@ -890,22 +891,22 @@ export default function App() {
 
         {/* ── STAGE 2: Processing ── */}
         {stage === 2 && (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <div className="relative w-40 h-40 mb-12 flex items-center justify-center">
-              <div className="absolute inset-0 border-[6px] border-blue-600/10 rounded-full" />
-              <div className="absolute inset-0 border-[6px] border-blue-600 border-t-transparent rounded-full animate-spin" />
-              <Cpu size={56} className="text-blue-500 animate-pulse" />
-            </div>
-            <h2 className="text-5xl font-black text-white italic tracking-tighter uppercase">Synthesizing...</h2>
-            <div className="mt-8 space-y-2 font-mono text-[10px] text-slate-500 uppercase tracking-[0.4em]">
-              <p className="animate-pulse">Building Executive Summary</p>
-              <p className="animate-pulse delay-75">Mapping Named Systems</p>
-              <p className="animate-pulse delay-150">Analyzing Competitor Landscape</p>
-              <p className="animate-pulse delay-200">Assessing Business Health</p>
-              <p className="animate-pulse delay-300">Generating Preview Report</p>
-            </div>
-            <p className="mt-6 text-xs text-slate-600">This typically takes 60–90 seconds.</p>
-          </div>
+          <IntelligenceEngineLoader
+            isCompleting={false}
+            headline="Synthesizing Blueprint"
+            subLabels={[
+              "Building Executive Summary...",
+              "Mapping Named Systems...",
+              "Analyzing Competitor Landscape...",
+              "Assessing Business Health...",
+              "Scanning Digital Footprint...",
+              "Calculating Revenue Leakage...",
+              "Drafting Orchestration Logic...",
+              "Generating Preview Report..."
+            ]}
+            activeText="Intelligence Engine Active — Do Not Close Window"
+            completionText="Synthesis Operations Complete"
+          />
         )}
 
         {/* ── STAGE 3: Preview Report ── */}

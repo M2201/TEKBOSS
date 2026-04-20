@@ -32,6 +32,7 @@ import { runBrandDnaGenerator } from './agents/brandDnaGenerator.js';
 import { runMarketScout } from './agents/marketScout.js';
 import { runNoiseFilter } from './agents/noiseFilter.js';
 import { generateBlueprintPdf } from './agents/pdfGenerator.js';
+import { uploadBlueprintToDrive } from './agents/driveUploader.js';
 import authRouter, { requireStrictAuth, requireAuth } from './auth.js';
 import db from './db.js';
 
@@ -231,7 +232,7 @@ app.post('/api/generate-blueprint', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DOWNLOAD PDF — generates and streams Blueprint PDF
+// DOWNLOAD PDF — generates PDF, uploads to Drive, returns link + streams file
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/download-pdf', requireAuth, async (req, res) => {
     const { businessName, previewReport, diyPlaybook, brandDna, marketIntel, roiData, namedSystems, generatedAt } = req.body;
@@ -254,8 +255,33 @@ app.post('/api/download-pdf', requireAuth, async (req, res) => {
         });
 
         const safeName = (businessName || 'TekBoss').replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_');
+        const fileName = `TekBoss_Blueprint_${safeName}_${Date.now()}.pdf`;
+
+        // Upload to Drive in background (non-blocking for download)
+        let driveLink = null;
+        if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+            try {
+                const driveResult = await uploadBlueprintToDrive(pdfBuffer, fileName);
+                driveLink = driveResult.webViewLink;
+                console.log('☁️  Drive upload complete:', driveLink);
+
+                // Store drive link on the user's blueprint record if we have a user
+                if (req.user?.id) {
+                    try {
+                        const stmt = db.prepare('UPDATE blueprints SET drive_link = ? WHERE user_id = ? ORDER BY created_at DESC LIMIT 1');
+                        stmt.run(driveLink, req.user.id);
+                    } catch (_) { /* non-fatal */ }
+                }
+            } catch (driveErr) {
+                console.error('⚠️  Drive upload failed (PDF still delivered):', driveErr.message);
+            }
+        }
+
+        // Set drive link header so frontend can pick it up
+        if (driveLink) res.setHeader('X-Drive-Link', driveLink);
+
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="TekBoss_Blueprint_${safeName}.pdf"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
         res.setHeader('Content-Length', pdfBuffer.length);
         console.log('✅ PDF ready — sending', pdfBuffer.length, 'bytes');
         return res.send(pdfBuffer);
@@ -263,6 +289,42 @@ app.post('/api/download-pdf', requireAuth, async (req, res) => {
     } catch (err) {
         console.error('💥 PDF generation failed:', err);
         return res.status(500).json({ error: 'PDF generation failed: ' + err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DELIVER TO DRIVE — upload only (no PDF download), return shareable link
+// Called after blueprint unlock to deliver file to client
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/deliver-to-drive', requireAuth, async (req, res) => {
+    const { businessName, previewReport, diyPlaybook, brandDna, marketIntel, roiData, generatedAt } = req.body;
+
+    if (!previewReport) {
+        return res.status(400).json({ error: 'No report data to deliver.' });
+    }
+
+    if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+        return res.status(503).json({ error: 'Google Drive delivery not configured.' });
+    }
+
+    try {
+        const pdfBuffer = await generateBlueprintPdf({ businessName, previewReport, diyPlaybook, brandDna, marketIntel, roiData, generatedAt });
+        const safeName  = (businessName || 'TekBoss').replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_');
+        const fileName  = `TekBoss_Blueprint_${safeName}_${Date.now()}.pdf`;
+
+        const driveResult = await uploadBlueprintToDrive(pdfBuffer, fileName);
+        console.log('✅ Blueprint delivered to Drive:', driveResult.webViewLink);
+
+        return res.json({
+            success: true,
+            driveLink:   driveResult.webViewLink,
+            downloadLink: driveResult.webContentLink,
+            fileName:    driveResult.name,
+        });
+
+    } catch (err) {
+        console.error('💥 Drive delivery failed:', err);
+        return res.status(500).json({ error: 'Drive delivery failed: ' + err.message });
     }
 });
 

@@ -680,6 +680,20 @@ export default function App() {
         if (authForm.password.length < 8) {
           throw new Error('Password must be at least 8 characters.');
         }
+        // Execute reCAPTCHA v3 — invisible to user, runs in background
+        let recaptchaToken = '';
+        try {
+          recaptchaToken = await new Promise((resolve, reject) => {
+            if (!window.grecaptcha) return resolve('');
+            window.grecaptcha.ready(() => {
+              window.grecaptcha
+                .execute('6LcPWMEsAAAAAMEVz0X14p4kWdl6uvx9tFNTXaFx', { action: 'register' })
+                .then(resolve)
+                .catch(() => resolve(''));
+            });
+          });
+        } catch (_) { /* non-fatal */ }
+
         const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -688,6 +702,7 @@ export default function App() {
             email: authForm.email,
             password: authForm.password,
             fullName: authForm.fullName,
+            recaptchaToken,
           }),
         });
         const data = await res.json();

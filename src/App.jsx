@@ -202,6 +202,7 @@ export default function App() {
   const [blueprintLoading, setBlueprintLoading] = useState(false);
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [activeHelpId, setActiveHelpId] = useState(null);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
   // Implementation Assistant state
   const [assistantMessages, setAssistantMessages] = useState([]);
   const [assistantInput, setAssistantInput] = useState('');
@@ -213,6 +214,47 @@ export default function App() {
   // ─── Auth state ─────────────────────────────────────────────────────────────
   const [user, setUser] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // ─── PDF Download ────────────────────────────────────────────────────────────
+  const downloadPdf = async (sourceData = null) => {
+    const data = sourceData || blueprint || previewData;
+    if (!data?.previewReport && !data?.previewData?.previewReport) {
+      alert('No report data available to download yet.');
+      return;
+    }
+    setPdfDownloading(true);
+    try {
+      const payload = {
+        businessName: businessName || answers?.[1]?.split(' ')[0] || 'TekBoss',
+        previewReport: data.previewReport || data.previewData?.previewReport,
+        diyPlaybook:  data.diyPlaybook  || null,
+        brandDna:     data.brandDna     || previewData?._internal?.brandDna     || null,
+        marketIntel:  data.marketIntel  || previewData?._internal?.marketIntel  || null,
+        roiData:      data.roiData      || previewData?._internal?.roiData      || null,
+        generatedAt:  data.generatedAt  || new Date().toISOString(),
+      };
+      const res = await fetch('/api/download-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('PDF generation failed');
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `TekBoss_Blueprint_${(businessName || 'Report').replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 2000);
+    } catch (err) {
+      console.error('PDF download error:', err);
+      alert('Could not generate PDF. Please try again.');
+    } finally {
+      setPdfDownloading(false);
+    }
+  };
   const [authMode, setAuthMode] = useState('register'); // 'register' | 'login'
   const [authForm, setAuthForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
   const [authError, setAuthError] = useState(null);
@@ -1036,8 +1078,25 @@ export default function App() {
 
                   {/* Preview Report Content */}
                   {previewData?.previewReport && (
-                    <div className="bg-slate-900/60 border border-slate-800 rounded-[2rem] p-10 mb-10 shadow-xl">
+                    <div className="bg-slate-900/60 border border-slate-800 rounded-[2rem] p-10 mb-4 shadow-xl">
                       <MarkdownContent content={previewData.previewReport} />
+                    </div>
+                  )}
+
+                  {/* PDF Download button (preview) */}
+                  {previewData?.previewReport && (
+                    <div className="flex justify-center mb-8">
+                      <button
+                        id="download-pdf-preview"
+                        onClick={() => downloadPdf(previewData)}
+                        disabled={pdfDownloading}
+                        className="flex items-center gap-2.5 px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-blue-500/40 text-slate-300 hover:text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        {pdfDownloading ? 'Generating PDF…' : 'Download Preview as PDF'}
+                      </button>
                     </div>
                   )}
 
@@ -1159,10 +1218,23 @@ export default function App() {
               {/* DIY Blueprint */}
               {blueprint?.diyPlaybook && (
                 <div className="mb-12">
-                  <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-4 flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-500 flex items-center justify-center border border-blue-500/20"><FileText size={16} /></span>
-                    Your Implementation Blueprint
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-3">
+                      <span className="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-500 flex items-center justify-center border border-blue-500/20"><FileText size={16} /></span>
+                      Your Implementation Blueprint
+                    </h3>
+                    <button
+                      id="download-pdf-blueprint"
+                      onClick={() => downloadPdf(blueprint)}
+                      disabled={pdfDownloading}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-lg shadow-blue-900/30"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      {pdfDownloading ? 'Generating…' : 'Download PDF'}
+                    </button>
+                  </div>
                   <div className="bg-slate-900/60 border border-slate-800 rounded-[2rem] p-10 shadow-xl">
                     <MarkdownContent content={blueprint.diyPlaybook} />
                   </div>

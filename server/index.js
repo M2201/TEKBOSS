@@ -31,6 +31,7 @@ import { runFollowUpGenerator } from './agents/followUpGenerator.js';
 import { runBrandDnaGenerator } from './agents/brandDnaGenerator.js';
 import { runMarketScout } from './agents/marketScout.js';
 import { runNoiseFilter } from './agents/noiseFilter.js';
+import { generateBlueprintPdf } from './agents/pdfGenerator.js';
 import authRouter, { requireStrictAuth, requireAuth } from './auth.js';
 import db from './db.js';
 
@@ -188,7 +189,7 @@ app.post('/api/generate-preview', async (req, res) => {
 // Stage 5: Takes pre-validated data → generates full Orchestration Playbook
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/generate-blueprint', async (req, res) => {
-    const { executiveSummary, enablementStrategy, validatedData } = req.body;
+    const { executiveSummary, enablementStrategy, validatedData, brandDna, marketIntel, roiData } = req.body;
 
     if (!executiveSummary || !enablementStrategy) {
         return res.status(400).json({ error: 'Missing required data for blueprint generation.' });
@@ -217,12 +218,51 @@ app.post('/api/generate-blueprint', async (req, res) => {
         return res.json({
             diyPlaybook: playbookData.diyPlaybook,
             sowPlaybook: playbookData.sowPlaybook,
+            brandDna:    brandDna    || null,
+            marketIntel: marketIntel || null,
+            roiData:     roiData     || null,
             generatedAt: new Date().toISOString(),
         });
 
     } catch (err) {
         console.error('💥 Blueprint generation failed:', err);
         return res.status(500).json({ error: 'Blueprint generation failed: ' + err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DOWNLOAD PDF — generates and streams Blueprint PDF
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/download-pdf', requireAuth, async (req, res) => {
+    const { businessName, previewReport, diyPlaybook, brandDna, marketIntel, roiData, namedSystems, generatedAt } = req.body;
+
+    if (!previewReport) {
+        return res.status(400).json({ error: 'No report data provided for PDF generation.' });
+    }
+
+    try {
+        console.log('📄 Generating PDF for:', businessName);
+        const pdfBuffer = await generateBlueprintPdf({
+            businessName,
+            previewReport,
+            diyPlaybook,
+            brandDna,
+            marketIntel,
+            roiData,
+            namedSystems,
+            generatedAt,
+        });
+
+        const safeName = (businessName || 'TekBoss').replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_');
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="TekBoss_Blueprint_${safeName}.pdf"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+        console.log('✅ PDF ready — sending', pdfBuffer.length, 'bytes');
+        return res.send(pdfBuffer);
+
+    } catch (err) {
+        console.error('💥 PDF generation failed:', err);
+        return res.status(500).json({ error: 'PDF generation failed: ' + err.message });
     }
 });
 

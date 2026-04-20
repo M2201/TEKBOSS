@@ -28,6 +28,9 @@ import { runPreviewReportGenerator } from './agents/previewReportGenerator.js';
 import { runOrchestrationPlaybook } from './agents/orchestrationPlaybook.js';
 import { runImplementationAssistant } from './agents/implementationAssistant.js';
 import { runFollowUpGenerator } from './agents/followUpGenerator.js';
+import { runBrandDnaGenerator } from './agents/brandDnaGenerator.js';
+import { runMarketScout } from './agents/marketScout.js';
+import { runNoiseFilter } from './agents/noiseFilter.js';
 import authRouter, { requireStrictAuth, requireAuth } from './auth.js';
 import db from './db.js';
 
@@ -137,7 +140,22 @@ app.post('/api/generate-preview', async (req, res) => {
         console.log('🛡️  Stage 3: Guardrails validating...');
         const validatedData = await runGuardrails(API_KEY, executiveSummary, strategyText);
 
-        await delay(3000);
+        await delay(2000);
+
+        // Stage 3.5: Parallel enrichment — Brand DNA + Market Scout + Noise Filter
+        // These run concurrently and are non-fatal (null on failure)
+        console.log('🧠 Stage 3.5: Running parallel enrichment agents...');
+        const [brandDna, marketIntel, roiData] = await Promise.allSettled([
+            runBrandDnaGenerator(API_KEY, executiveSummary, answers),
+            runMarketScout(API_KEY, executiveSummary, answers),
+            runNoiseFilter(API_KEY, executiveSummary, validatedData, answers),
+        ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null));
+
+        if (brandDna) console.log('✅ Brand DNA complete');
+        if (marketIntel) console.log('✅ Market Scout complete');
+        if (roiData) console.log('✅ Noise Filter complete');
+
+        await delay(2000);
 
         // Stage 4: Generate Preview Report
         console.log('📊 Stage 4: Preview Report generating...');
@@ -152,6 +170,9 @@ app.post('/api/generate-preview', async (req, res) => {
                 executiveSummary,
                 enablementStrategy: strategyText,
                 validatedData,
+                brandDna: brandDna || null,
+                marketIntel: marketIntel || null,
+                roiData: roiData || null,
             },
             generatedAt: new Date().toISOString(),
         });

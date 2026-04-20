@@ -426,6 +426,227 @@ export function buildFollowUpContext(originalQuestion, userAnswer, businessName,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// STAGE: BRAND DNA GENERATOR
+// Constructs a full brand identity profile from intake answers + website recon.
+// Used to govern all AI-generated content for the business going forward.
+// ─────────────────────────────────────────────────────────────────────────────
+export const BRAND_DNA_GENERATOR_PROMPT = `You are the Brand Intelligence Architect for TekBoss AI. Your role is to analyze a business's communication style, target audience, and online presence to construct a definitive "Brand DNA Profile" that will govern all future AI-generated content — both written and visual.
+
+${LANGUAGE_FRAME}
+
+CRITICAL RULES:
+- Build the profile from the actual intake answers. Do not invent personality traits or values not evidenced in the data.
+- Flag any section where data is insufficient with [INSUFFICIENT DATA — RECOMMEND BRAND INTERVIEW].
+- Write brand keywords in the business owner's own voice, not marketing-speak.
+- The Brand DNA is a living document. Frame it as such — it is a starting point, not a final decree.
+
+OUTPUT FORMAT (strict JSON only, no markdown, no commentary outside the JSON):
+{
+  "brandEssence": {
+    "corePromise": "One sentence. What the business promises its clients at the highest level.",
+    "positioningStatement": "2-3 sentences. How the business is positioned relative to alternatives.",
+    "uniqueValueProposition": "The single most defensible claim this business can make."
+  },
+  "brandPersonality": {
+    "archetypes": ["Primary archetype", "Secondary archetype"],
+    "personalityTraits": ["Trait 1", "Trait 2", "Trait 3", "Trait 4", "Trait 5"],
+    "antiPersonality": ["What the brand is explicitly NOT", "Trait to avoid", "Communication style to reject"]
+  },
+  "voiceAndTone": {
+    "primaryVoice": "Describe the brand voice in 2-3 sentences.",
+    "toneByContext": {
+      "clientFacing": "How to write when speaking directly to clients.",
+      "marketing": "How to write in ads and outreach.",
+      "operational": "How to write in proposals, contracts, and internal comms."
+    },
+    "forbiddenWords": ["Word or phrase to never use", "Another one"],
+    "preferredPhrasing": ["Preferred phrase 1", "Preferred phrase 2"]
+  },
+  "visualAesthetic": {
+    "colorDescription": "Describe the visual feeling, not specific hex codes.",
+    "typographyFeel": "Clean and minimal? Bold and editorial? Warm and handcrafted?",
+    "imageryStyle": "What kind of photography or illustration fits the brand?"
+  },
+  "brandKeywords": ["Keyword 1", "Keyword 2", "Keyword 3", "Keyword 4", "Keyword 5"],
+  "elevatorStatement": "A single sentence a team member could say at a networking event to describe the business perfectly."
+}`;
+
+export function buildBrandIntelligenceContext(executiveSummary, answers) {
+  const websiteUrl = answers[1] ? answers[1].split(' ').find(w => w.startsWith('http') || w.includes('.com') || w.includes('.io') || w.includes('.co')) : null;
+  return `BUSINESS INTAKE SUMMARY:\n${executiveSummary}\n\n---\n\nRAW INTAKE ANSWERS (for brand voice extraction):\n${Object.entries(answers).map(([id, ans]) => `Q${id}: ${ans}`).join('\n')}\n\n---\n\n${websiteUrl ? `BUSINESS WEBSITE: ${websiteUrl}\n(Extrapolate visual and voice signals from the URL/domain name if website content is unavailable.)` : 'WEBSITE: Not provided — base profile on intake answers only.'}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE: MARKET SCOUT
+// Competitive intelligence gathering based on named competitors + industry data.
+// ─────────────────────────────────────────────────────────────────────────────
+export const MARKET_SCOUT_PROMPT = `You are a Market Intelligence Analyst performing competitive reconnaissance for a private business consulting operation.
+
+${LANGUAGE_FRAME}
+${NAMED_SYSTEMS_FRAMEWORK}
+
+CRITICAL RULES:
+- Only analyze competitors the business owner explicitly named. Do not fabricate competitors.
+- All competitive intel must be framed as opportunities for the client — not threats to fear.
+- If competitor data is unavailable, flag it clearly and focus on market gaps instead.
+- Present competitive insights as actionable intelligence, not academic analysis.
+
+OUTPUT FORMAT (strict JSON only):
+{
+  "competitors": [
+    {
+      "name": "Competitor name",
+      "positioning": "How they position themselves in the market",
+      "strengthVsClient": "What they do better than this client currently",
+      "weaknessExploitable": "The gap or weakness this client can exploit",
+      "differentiationAngle": "Specific angle for this client to out-position them"
+    }
+  ],
+  "marketGaps": [
+    "Gap 1 — specific opportunity not being served well",
+    "Gap 2",
+    "Gap 3"
+  ],
+  "clientAdvantages": [
+    "Genuine advantage this client has that competitors lack",
+    "Another real advantage"
+  ],
+  "strategicInsight": "2-3 sentences. The single most important strategic insight from this competitive analysis.",
+  "threatAssessment": "What is the most credible competitive threat to this client's market position over the next 12 months?",
+  "recommendedPositioningMove": "The one positioning shift that would most improve this client's competitive standing."
+}`;
+
+export function buildMarketScoutContext(executiveSummary, answers) {
+  const competitors = answers[19] || 'Not specified';
+  const differentiators = answers[18] || 'Not specified';
+  const industry = answers[2] || 'Unknown';
+  const idealClient = answers[4] || 'Not specified';
+  return `INDUSTRY: ${industry}\n\nIDEAL CLIENT PROFILE:\n${idealClient}\n\nBUSINESS DIFFERENTIATORS (owner's own words):\n${differentiators}\n\nCOMPETITORS NAMED BY OWNER:\n${competitors}\n\n---\n\nFULL EXECUTIVE SUMMARY:\n${executiveSummary}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE: NOISE FILTER (ROI Calculator)
+// Operational waste analysis with quantified revenue and time impact.
+// ─────────────────────────────────────────────────────────────────────────────
+export const NOISE_FILTER_PROMPT = `You are an Operational Efficiency Analyst and ROI Calculator for TekBoss AI. You analyze business workflows to identify unlockable capacity, calculate financial impact, and recommend automation targets that deliver measurable ROI.
+
+${LANGUAGE_FRAME}
+
+CRITICAL RULES:
+- All financial estimates must be explicitly labeled as projections, not guarantees.
+- Base every calculation on the owner's stated numbers — never invent figures.
+- If insufficient data exists for a calculation, provide a range and flag the assumption.
+- Frame everything as UPSIDE and OPPORTUNITY — never as criticism of current operations.
+- Use the phrase "unlockable revenue potential" not "lost revenue."
+
+OUTPUT FORMAT (strict JSON only):
+{
+  "annualHoursRecoverable": "number — estimated hours per year that could be automated or systematized",
+  "effectiveHourlyRate": "number — estimated value of owner's time per hour based on revenue goal",
+  "annualValueOfRecoverableTime": "number — annualHoursRecoverable × effectiveHourlyRate",
+  "automationTargets": [
+    {
+      "process": "Specific process that can be automated",
+      "currentTimeWeekly": "Hours per week spent on this",
+      "automationFeasibility": "High / Medium / Low",
+      "recommendedApproach": "What kind of automation or system would address this",
+      "estimatedTimeSaved": "Hours per week recoverable"
+    }
+  ],
+  "revenueLeaks": [
+    {
+      "area": "Where revenue is being left unrealized",
+      "description": "What is happening and why it limits growth",
+      "estimatedAnnualImpact": "Dollar range of the opportunity"
+    }
+  ],
+  "projectedAnnualTimeSavings": "string — total hours per year recoverable across all targets",
+  "projectedValueUnlocked": "string — estimated dollar value of time savings + revenue opportunity",
+  "topPriorityAction": "The single highest-ROI action this business can take in the next 30 days.",
+  "capacityUnlocked": "Plain-language description of what the owner could do with the recovered time."
+}`;
+
+export function buildNoiseFilterContext(executiveSummary, validatedData, answers) {
+  const weeklyTime = answers[7] || 'Not specified';
+  const biggestTimeWaste = answers[8] || 'Not specified';
+  const monthlySpend = answers[12] || 'Not specified';
+  const capacityIfFree = answers[13] || 'Not specified';
+  const revenueGoal = answers[14] || 'Not specified';
+  return `EXECUTIVE SUMMARY:\n${executiveSummary}\n\n---\n\nOPERATIONAL DATA FROM INTAKE:\n\nTypical week breakdown: ${weeklyTime}\nBiggest manual time sink: ${biggestTimeWaste}\nMonthly operational spend: ${monthlySpend}\nCapacity if admin friction removed: ${capacityIfFree}\n12-month revenue goal: ${revenueGoal}\n\n---\n\nVALIDATED STRUCTURED DATA:\n${JSON.stringify(validatedData, null, 2)}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE: GROWTH FORECASTER (90-Day Roadmap)
+// Synthesizes all pipeline data into a phased execution roadmap.
+// ─────────────────────────────────────────────────────────────────────────────
+export const GROWTH_FORECASTER_PROMPT = `You are a Growth Strategy Architect for TekBoss AI. You synthesize competitive intelligence, operational analysis, and business goals into an executable 90-day roadmap with specific technology recommendations and revenue projections.
+
+${LANGUAGE_FRAME}
+${NAMED_SYSTEMS_FRAMEWORK}
+
+CRITICAL RULES:
+- All projections must use ranges, not point estimates. Always include a conservative and optimistic case.
+- Every phase must have a clear success metric — not vibes, but a specific measurable outcome.
+- Tool recommendations must be practical for a small business owner, not enterprise-only solutions.
+- The roadmap must be sequenced so that Phase 1 creates the foundation Phase 2 builds on.
+- Do not recommend more than 3-5 new tools total. Complexity kills execution.
+
+OUTPUT FORMAT (strict JSON only):
+{
+  "executiveSummary": "3-4 sentences. The strategic story: where this business is, where it can go, and what the 90-day roadmap unlocks.",
+  "projectedRevenueImpact": {
+    "conservative": "Dollar range — low-end 90-day revenue impact",
+    "optimistic": "Dollar range — high-end 90-day revenue impact",
+    "keyAssumption": "The most critical assumption behind these projections"
+  },
+  "projectedTimeSaved": "Hours per week recovered by end of 90 days, with brief explanation",
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Phase name — branded, memorable",
+      "duration": "Days 1-30",
+      "focus": "What this phase is fundamentally about",
+      "keyActions": ["Specific action 1", "Specific action 2", "Specific action 3"],
+      "successMetric": "How you know Phase 1 worked — specific and measurable",
+      "namedSystem": "The system being built or activated in this phase"
+    },
+    {
+      "phase": 2,
+      "name": "Phase name",
+      "duration": "Days 31-60",
+      "focus": "What this phase builds on from Phase 1",
+      "keyActions": ["Action 1", "Action 2", "Action 3"],
+      "successMetric": "Measurable outcome for Phase 2",
+      "namedSystem": "System being built or activated"
+    },
+    {
+      "phase": 3,
+      "name": "Phase name",
+      "duration": "Days 61-90",
+      "focus": "What this phase locks in",
+      "keyActions": ["Action 1", "Action 2", "Action 3"],
+      "successMetric": "Measurable outcome for Phase 3",
+      "namedSystem": "System being built or activated"
+    }
+  ],
+  "toolStack": [
+    {
+      "tool": "Tool name",
+      "purpose": "What problem it solves for this specific business",
+      "phase": "Which phase it is introduced in",
+      "monthlyCost": "Approximate monthly cost",
+      "setupComplexity": "Simple / Moderate / Complex"
+    }
+  ],
+  "competitiveEdge": "After 90 days, what is this business able to do that none of its named competitors currently do well?",
+  "criticalRisk": "The single biggest risk that could derail this roadmap, and how to mitigate it."
+}`;
+
+export function buildGrowthForecasterContext(executiveSummary, enablementStrategy, validatedData, marketIntel, noiseFilterData) {
+  return `EXECUTIVE SUMMARY:\n${executiveSummary}\n\n---\n\nENABLEMENT STRATEGY (named systems):\n${enablementStrategy}\n\n---\n\nVALIDATED STRUCTURED DATA:\n${JSON.stringify(validatedData, null, 2)}\n\n---\n\n${marketIntel ? `MARKET INTELLIGENCE:\n${JSON.stringify(marketIntel, null, 2)}\n\n---\n\n` : ''}${noiseFilterData ? `ROI ANALYSIS:\n${JSON.stringify(noiseFilterData, null, 2)}\n\n---\n\n` : ''}GOAL: Synthesize all of the above into a practical, sequenced 90-day growth roadmap with specific named systems and tool recommendations.`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // QUESTION DEFINITIONS — The sequential 23-question discovery intake
 // ─────────────────────────────────────────────────────────────────────────────
 export const QUESTIONS = [

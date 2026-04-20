@@ -227,6 +227,48 @@ export default function App() {
   const inputRef = useRef(null);
   const assistantBottomRef = useRef(null);
   const assistantInputRef = useRef(null);
+  const recognitionRef = useRef(null);
+
+  // ─── Voice input state ───────────────────────────────────────────────
+  const [isListening, setIsListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+
+  // Detect speech support on mount
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) setVoiceSupported(true);
+  }, []);
+
+  const toggleListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend   = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map(r => r[0].transcript)
+        .join('');
+      setInputValue(transcript);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+  // ──────────────────────────────────────────────────
 
   const questions = STATIC_QUESTIONS;
   const currentQuestion = questions[currentQIndex] || null;
@@ -804,16 +846,47 @@ export default function App() {
         {/* ── STAGE 1: Interview ── */}
         {stage === 1 && (
           <div className="flex flex-col h-full">
-            {/* Progress */}
-            <div className="flex-shrink-0 px-8 pt-8 pb-4 border-b border-slate-800/40">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">Discovery Interview</span>
-                <span className="text-[10px] text-slate-500 font-bold">{currentQIndex + 1} / {questions.length}</span>
+            {/* Pipeline Stage Nav Bar */}
+            <div className="flex-shrink-0 px-4 md:px-8 pt-5 pb-4 border-b border-slate-800/40">
+              <div className="flex items-center justify-between mb-3 max-w-2xl mx-auto w-full">
+                {[
+                  { id: 1, label: 'Interview',   stageNum: 1 },
+                  { id: 2, label: 'Processing',  stageNum: 2 },
+                  { id: 3, label: 'Preview',     stageNum: 3 },
+                  { id: 4, label: 'Blueprint',   stageNum: 4 },
+                ].map((s, idx) => {
+                  const isActive   = stage === s.stageNum;
+                  const isComplete = stage > s.stageNum;
+                  return (
+                    <React.Fragment key={s.id}>
+                      <div className="flex flex-col items-center gap-1">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black transition-all duration-500
+                          ${ isComplete ? 'bg-blue-500 text-white shadow-lg shadow-blue-900/40'
+                            : isActive  ? 'bg-blue-600 text-white ring-2 ring-blue-400/40 shadow-lg shadow-blue-900/40'
+                            : 'bg-slate-800 text-slate-600 border border-slate-700'}`}>
+                          {isComplete ? <CheckCircle size={12} /> : s.id}
+                        </div>
+                        <span className={`text-[9px] font-black uppercase tracking-[0.15em] transition-colors duration-500
+                          ${ isActive ? 'text-blue-400' : isComplete ? 'text-slate-400' : 'text-slate-700'}`}>
+                          {s.label}
+                        </span>
+                      </div>
+                      {idx < 3 && (
+                        <div className={`flex-1 h-[2px] mx-1 rounded-full transition-all duration-700 ${ isComplete ? 'bg-blue-500' : 'bg-slate-800'}`} />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </div>
-              <div className="h-1 w-full bg-slate-900 rounded-full overflow-hidden">
+              {/* Progress within interview */}
+              <div className="flex justify-between items-center mb-1.5 max-w-2xl mx-auto">
+                <span className="text-[9px] font-black text-blue-600/80 uppercase tracking-[0.3em]">Discovery Interview</span>
+                <span className="text-[9px] text-slate-500 font-bold">{currentQIndex + 1} / {questions.length}</span>
+              </div>
+              <div className="h-[2px] w-full max-w-2xl mx-auto bg-slate-900 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all duration-700"
-                  style={{ width: `${(currentQIndex / questions.length) * 100}%` }}
+                  style={{ width: `${((currentQIndex + 1) / questions.length) * 100}%` }}
                 />
               </div>
             </div>
@@ -864,17 +937,42 @@ export default function App() {
 
             {/* Input */}
             <div className="flex-shrink-0 px-8 py-6 border-t border-slate-800/50 bg-slate-950/80">
+              {isListening && (
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-mic-pulse" />
+                  <span className="text-[10px] text-red-400 font-bold uppercase tracking-[0.2em]">Listening… tap mic to stop</span>
+                </div>
+              )}
               <div className="flex gap-3 items-end">
                 <textarea
                   ref={inputRef}
                   id="answer-input"
                   className="flex-1 bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600 resize-none font-medium leading-relaxed"
-                  placeholder={waitingForFollowUp ? 'Clarify your answer...' : 'Type your response...'}
+                  placeholder={isListening ? 'Listening…' : waitingForFollowUp ? 'Clarify your answer…' : 'Type or speak your response…'}
                   value={inputValue}
                   onChange={e => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
                   rows={2}
                 />
+                {voiceSupported && (
+                  <button
+                    id="mic-btn"
+                    onClick={toggleListening}
+                    title={isListening ? 'Stop recording' : 'Speak your answer'}
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
+                      isListening
+                        ? 'bg-red-600 text-white animate-mic-pulse shadow-lg shadow-red-900/40'
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
+                    }`}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                      <line x1="12" y1="19" x2="12" y2="23" />
+                      <line x1="8" y1="23" x2="16" y2="23" />
+                    </svg>
+                  </button>
+                )}
                 <button
                   id="send-btn"
                   onClick={handleSubmit}
@@ -884,7 +982,7 @@ export default function App() {
                   <Send size={18} />
                 </button>
               </div>
-              <p className="text-center text-[10px] text-slate-700 mt-3">Enter to send · Shift+Enter for new line</p>
+              <p className="text-center text-[10px] text-slate-700 mt-3">Enter to send · Shift+Enter for new line{voiceSupported ? ' · Mic to speak' : ''}</p>
             </div>
           </div>
         )}

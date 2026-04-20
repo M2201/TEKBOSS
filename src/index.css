@@ -21,8 +21,65 @@ body {
   background: rgba(100, 116, 139, 0.5);
 }
 
-/* Animation delays for processing stage */
-.delay-75 { animation-delay: 75ms; }
+/* ─── Brand Color System ────────────────────────────────────────────── */
+:root {
+  --charcoal-black:  #1A1A1A; /* Pantone Cool Gray 11 C — Primary Base */
+  --pure-white:      #FFFFFF; /* Pantone White — Secondary Base */
+  --deep-sky-blue:   #00BFFF; /* Pantone 293 C — Tertiary */
+  --light-sky-blue:  #66CCFF; /* Pantone 291 C — Accent */
+  --light-grey:      #F5F5F5; /* Pantone Cool Gray 1 C — Neutral Light */
+  --dark-grey:       #4A4A4A; /* Pantone Cool Gray 9 C — Neutral Dark */
+}
+
+/* ─── Entry Animations ──────────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out both;
+}
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out both;
+}
+.animate-slide-in-right {
+  animation: slideInRight 0.4s ease-out both;
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+  background-size: 200% auto;
+  animation: shimmer 2s linear infinite;
+}
+
+/* ─── Mic recording pulse ────────────────────────────────────────────── */
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+  50%       { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+}
+.animate-mic-pulse {
+  animation: micPulse 1.2s ease-in-out infinite;
+}
+
+/* ─── Animation delays ───────────────────────────────────────────────── */
+.delay-75  { animation-delay: 75ms; }
 .delay-150 { animation-delay: 150ms; }
 .delay-200 { animation-delay: 200ms; }
 .delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }

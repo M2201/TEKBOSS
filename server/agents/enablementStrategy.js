@@ -31,13 +31,13 @@ export async function runEnablementStrategy(apiKey, executiveSummary) {
         };
     } catch (err) {
         const msg = err.message || '';
-        if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota')) {
-            throw err;
-        }
         console.error('❌ Enablement Strategy error:', msg);
-        return {
-            strategyText: 'Strategy analysis could not be completed. Please retry.',
-            error: msg,
-        };
+        console.error('❌ Enablement Strategy full error:', JSON.stringify({
+            message: err.message,
+            status: err.status,
+            code: err.code,
+            stack: err.stack?.substring(0, 500),
+        }));
+        throw err;
     }
 }

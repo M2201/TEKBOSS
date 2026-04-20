@@ -48,10 +48,13 @@ export async function runIntakeSynthesizer(apiKey, answers) {
         return text;
     } catch (err) {
         const msg = err.message || '';
-        if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota')) {
-            throw err;
-        }
         console.error('❌ Intake Synthesizer error:', msg);
-        return FALLBACK_SUMMARY;
+        console.error('❌ Intake Synthesizer full error:', JSON.stringify({
+            message: err.message,
+            status: err.status,
+            code: err.code,
+            stack: err.stack?.substring(0, 500),
+        }));
+        throw err;
     }
 }

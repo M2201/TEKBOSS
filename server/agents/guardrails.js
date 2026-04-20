@@ -47,10 +47,13 @@ export async function runGuardrails(apiKey, executiveSummary, enablementStrategy
         return parsed;
     } catch (err) {
         const msg = err.message || '';
-        if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota')) {
-            throw err;
-        }
         console.error('❌ Guardrails error:', msg);
-        return { ...FALLBACK_VALIDATED, error: msg };
+        console.error('❌ Guardrails full error:', JSON.stringify({
+            message: err.message,
+            status: err.status,
+            code: err.code,
+            stack: err.stack?.substring(0, 500),
+        }));
+        throw err;
     }
 }

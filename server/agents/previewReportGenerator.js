@@ -29,10 +29,13 @@ export async function runPreviewReportGenerator(apiKey, executiveSummary, enable
         return text;
     } catch (err) {
         const msg = err.message || '';
-        if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota')) {
-            throw err;
-        }
         console.error('❌ Preview Report error:', msg);
-        return 'Preview report could not be generated. Please retry.';
+        console.error('❌ Preview Report full error:', JSON.stringify({
+            message: err.message,
+            status: err.status,
+            code: err.code,
+            stack: err.stack?.substring(0, 500),
+        }));
+        throw err; // always rethrow so the caller sees the real error
     }
 }

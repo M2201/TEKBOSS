@@ -16,6 +16,7 @@ const STATIC_QUESTIONS = [
   { id: 3, phase: 'Context', text: "In plain terms — what do clients get from working with you that they couldn't easily get elsewhere?", hint: 'Focus on the outcome or result, not the service itself.', example: 'Our clients go from 0 to 20+ qualified leads per month within 60 days' },
   { id: 4, phase: 'Context', text: 'Who is your ideal client? Describe them specifically — who they are, their situation, and what they need.', hint: 'Include industry, business size, situation, and their main pain point.', example: 'Coaches doing $10k–$30k/month who need more leads but have no time for content' },
   { id: 5, phase: 'Story', text: 'What made you start this business? Give me the real reason, not the elevator pitch version.', hint: 'Be honest — the real origin story gives us insight into your mission and values.', example: 'I spent 10 years in corporate watching small businesses get bad advice from expensive agencies and left to fix that.' },
+  { id: 51, phase: 'Story', text: 'How long has this business been operating, and what is the most significant milestone you have hit so far?', hint: 'Give us the actual age of the business and one concrete achievement — a revenue milestone, a client count, a market win.', example: '3 years in business. Biggest milestone: crossed $250k in revenue last year and landed our first enterprise client.' },
   { id: 6, phase: 'Story', text: "Give me three specific numbers for the next 12 months: (1) your target revenue or monthly income goal, (2) the team size you want to be running, and (3) the number of active clients or customers you want to be serving.", hint: 'All three numbers are required — revenue/income target, headcount, and active client or customer count.', example: 'Revenue: $600k/year. Team: 5 people (me + 4). Clients: 40 active retainer clients.' },
   { id: 7, phase: 'Operations', text: "Name your top 3 biggest time drains this week — what the activity actually is (not just a category like 'admin') and roughly how many hours it takes each week.", hint: 'Be specific about what the task is, not just the category. Give a time estimate for each one.', example: '1. Manually building client reports from 5 different dashboards — 6 hrs/week. 2. Back-and-forth scheduling emails — 3 hrs/week. 3. Re-explaining our onboarding process to every new client — 4 hrs/week.' },
   { id: 8, phase: 'Operations', text: "What's one thing you do every single week that a capable assistant could handle — but still takes up hours of your time?", hint: 'Think reporting, scheduling, data entry, follow-ups, formatting.', example: 'Pulling data from 5 platforms and building client reports every Friday — about 6 hours.' },
@@ -226,7 +227,7 @@ export default function App() {
     setPdfDownloading(true);
     try {
       const payload = {
-        businessName: businessName || answers?.[1]?.split(' ')[0] || 'TekBoss',
+        businessName: businessName || answers?.[1]?.split(/[,—–]/)[0]?.trim() || 'TekBoss',
         previewReport: data.previewReport || data.previewData?.previewReport,
         diyPlaybook:  data.diyPlaybook  || null,
         brandDna:     data.brandDna     || previewData?._internal?.brandDna     || null,
@@ -337,7 +338,8 @@ export default function App() {
 
   const questions = STATIC_QUESTIONS;
   const currentQuestion = questions[currentQIndex] || null;
-  const businessName = answers[1] ? answers[1].split(/[\s,—–-]/)[0] : null;
+  // Use the full business name from Q1 — never truncate to first word
+  const businessName = answers[1] ? answers[1].split(/[,—–]/)[0].trim() : null;
   const industry = answers[2] || null;
 
   // Auto-scroll

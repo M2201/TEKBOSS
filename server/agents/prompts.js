@@ -661,6 +661,7 @@ export const QUESTIONS = [
   { id: 3, phase: "Context", text: "In plain terms — what do clients get from working with you that they couldn't easily get elsewhere?" },
   { id: 4, phase: "Context", text: "Who is your ideal client? Describe them specifically — who they are, their situation, and what they need." },
   { id: 5, phase: "Story", text: "What made you start this business? Give me the real reason, not the elevator pitch version." },
+  { id: 51, phase: "Story", text: "How long has this business been operating, and what is the most significant milestone you have hit so far?" },
   { id: 6, phase: "Story", text: "If the next 12 months go exactly the way you want — what does that actually look like?" },
   { id: 7, phase: "Operations", text: "Walk me through a typical week. Where does your time actually go?" },
   { id: 8, phase: "Operations", text: "What's one thing you do every single week that a capable assistant could handle — but still takes up hours of your time?" },

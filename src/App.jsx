@@ -51,7 +51,7 @@ const STATIC_QUESTIONS = [
       { value: 'ecommerce', label: 'E-Commerce Automation', desc: 'Product descriptions, abandoned cart flows, inventory alerts, and order follow-up' },
     ]
   },
-  { id: 23, phase: 'Signal', text: 'Last one — is there anything about your business, your situation, or your goals that would help us build a sharper blueprint for you?', hint: "Anything that doesn't fit earlier questions — an upcoming launch, a partnership, a constraint we should know.", example: 'We\'re launching a second service line in Q3, so the blueprint should account for that expansion.' },
+  { id: 23, phase: 'Signal', text: 'In 90 days, if one thing in your business was finally running on autopilot — what would that one thing be? And what\'s the honest reason it hasn\'t happened yet?', hint: 'Name the specific process or task, then be real about the blocker — is it time, budget, not knowing where to start, or something else?', example: 'Client onboarding. It hasn\'t happened because every time I try to document the process, a real client need pulls me away — I keep deprioritising it.' },
 ];
 
 // ─── Brand Logo ────────────────────────────────────────────────────────────────

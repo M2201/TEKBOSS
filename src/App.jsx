@@ -20,7 +20,6 @@ const STATIC_QUESTIONS = [
   { id: 51, phase: 'Story', text: 'How long has this business been operating, and what is the most significant milestone you have hit so far?', hint: 'Give us the actual age of the business and one concrete achievement — a revenue milestone, a client count, a market win.', example: '3 years in business. Biggest milestone: crossed $250k in revenue last year and landed our first enterprise client.' },
   { id: 6, phase: 'Story', text: "Give me three specific numbers for the next 12 months: (1) your target revenue or monthly income goal, (2) the team size you want to be running, and (3) the number of active clients or customers you want to be serving.", hint: 'All three numbers are required — revenue/income target, headcount, and active client or customer count.', example: 'Revenue: $600k/year. Team: 5 people (me + 4). Clients: 40 active retainer clients.' },
   { id: 7, phase: 'Operations', text: "Name your top 3 biggest time drains this week — what the activity actually is (not just a category like 'admin') and roughly how many hours it takes each week.", hint: 'Be specific about what the task is, not just the category. Give a time estimate for each one.', example: '1. Manually building client reports from 5 different dashboards — 6 hrs/week. 2. Back-and-forth scheduling emails — 3 hrs/week. 3. Re-explaining our onboarding process to every new client — 4 hrs/week.' },
-  { id: 8, phase: 'Operations', text: "What's one thing you do every single week that a capable assistant could handle — but still takes up hours of your time?", hint: 'Think reporting, scheduling, data entry, follow-ups, formatting.', example: 'Pulling data from 5 platforms and building client reports every Friday — about 6 hours.' },
   { id: 9, phase: 'Operations', text: 'At what point in your sales process do you most often lose people? Where do things go quiet?', hint: 'Trace the path — intro call, proposal, follow-up, contract, onboarding?', example: 'After the proposal — people open it but ghost us if we wait more than 48 hours to follow up.' },
   { id: 10, phase: 'Operations', text: 'Where does your client and prospect data live right now? Spreadsheet, CRM, notes app — be specific.', hint: 'Name the exact tool, even if it\'s just a Google Sheet or a notes app.', example: 'HubSpot for active clients, but a Google Sheet backup because the team doesn\'t fully use HubSpot.' },
   { id: 11, phase: 'Operations', text: "What's the most time-consuming process in your business that you think a system could handle better than you're handling it now?", hint: 'Think about any repeated sequence — onboarding, reporting, follow-ups, publishing.', example: 'Client onboarding — we manually send 6 emails and update 4 spreadsheets per new client.' },
@@ -35,6 +34,24 @@ const STATIC_QUESTIONS = [
   { id: 20, phase: 'Brand', text: 'If your brand had a personality, how would it communicate? Give me three words that describe its voice and tone.', hint: 'Think about how you write emails or how clients describe your style.', example: 'Direct, sharp, confident — we don\'t soften things or use fluff.' },
   { id: 21, phase: 'Brand', text: 'What words, phrases, or communication styles would make you cringe if an AI wrote them for your brand?', hint: 'Think about jargon, passive voice, or motivational clichés you\'d never say.', example: "Synergy, ecosystem, empower — anything that sounds like a LinkedIn post from 2017." },
   { id: 22, phase: 'Constraints', text: 'Do you have any proprietary methods, processes, or sensitive data that should never be shared with or processed by third-party AI tools?', hint: 'Think trade secrets, client data, scoring models, or internal processes.', example: 'Yes — our lead scoring formula and all client performance data stays internal.' },
+  { id: 24, phase: 'AI Capabilities', type: 'multiSelect',
+    text: "Which of these AI capabilities would benefit your business? Select everything that applies.",
+    hint: 'Check all that could realistically improve how you work or serve clients. You can select as many as you like.',
+    options: [
+      { value: 'chatbot', label: 'Chatbot / Website AI Assistant', desc: 'Answers questions, qualifies leads, handles FAQs on your site 24/7' },
+      { value: 'avatar', label: 'AI Video Avatar', desc: 'A digital version of you or a brand representative for video content and training' },
+      { value: 'phone_agent', label: 'AI Phone Answering Agent', desc: 'Handles inbound calls, books appointments, routes inquiries automatically' },
+      { value: 'content', label: 'Content & Social Media Automation', desc: 'Generates on-brand posts, captions, newsletters, and blog drafts' },
+      { value: 'lead_followup', label: 'Lead Generation & Follow-Up Automation', desc: 'Nurtures prospects, sends follow-ups, and alerts you when leads go cold' },
+      { value: 'email_marketing', label: 'Email Marketing Automation', desc: 'Sequences, segmentation, and personalization at scale' },
+      { value: 'scheduling', label: 'Appointment & Scheduling Automation', desc: 'Eliminates back-and-forth booking — syncs calendars and sends reminders' },
+      { value: 'onboarding', label: 'Client Onboarding Automation', desc: 'Delivers welcome docs, collects info, and sets expectations without manual effort' },
+      { value: 'reporting', label: 'Reporting & Analytics Automation', desc: 'Pulls data from multiple sources into a single dashboard or report automatically' },
+      { value: 'documents', label: 'Document Generation', desc: 'Auto-generates proposals, contracts, SOWs, or intake forms based on templates' },
+      { value: 'knowledge_base', label: 'Internal Knowledge Base / Team AI', desc: 'A searchable AI your team uses to find answers, processes, and SOPs instantly' },
+      { value: 'ecommerce', label: 'E-Commerce Automation', desc: 'Product descriptions, abandoned cart flows, inventory alerts, and order follow-up' },
+    ]
+  },
   { id: 23, phase: 'Signal', text: 'Last one — is there anything about your business, your situation, or your goals that would help us build a sharper blueprint for you?', hint: "Anything that doesn't fit earlier questions — an upcoming launch, a partnership, a constraint we should know.", example: 'We\'re launching a second service line in Q3, so the blueprint should account for that expansion.' },
 ];
 
@@ -195,6 +212,7 @@ export default function App() {
   const [answers, setAnswers] = useState({});
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
+  const [multiSelectedOptions, setMultiSelectedOptions] = useState([]);
   const [waitingForFollowUp, setWaitingForFollowUp] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [previewData, setPreviewData] = useState(null);
@@ -544,6 +562,19 @@ export default function App() {
     advanceQuestion(newAnswers);
   };
 
+  const handleMultiSelectSubmit = async () => {
+    if (!currentQuestion || multiSelectedOptions.length === 0) return;
+    const selectedLabels = currentQuestion.options
+      .filter(o => multiSelectedOptions.includes(o.value))
+      .map(o => o.label)
+      .join(', ');
+    const answerText = `Selected: ${selectedLabels}`;
+    setMessages(prev => [...prev, { role: 'user', text: answerText }]);
+    const newAnswers = { ...answers, [currentQuestion.id]: answerText };
+    setAnswers(newAnswers);
+    advanceQuestion(newAnswers);
+  };
+
   const advanceQuestion = (latestAnswers) => {
     const nextIndex = currentQIndex + 1;
     if (nextIndex >= questions.length) {
@@ -551,6 +582,7 @@ export default function App() {
       return;
     }
     setCurrentQIndex(nextIndex);
+    setMultiSelectedOptions([]); // reset any multi-select state
     const nextQ = questions[nextIndex];
     setIsTyping(true);
     setTimeout(() => {
@@ -1083,54 +1115,106 @@ export default function App() {
               <div ref={bottomRef} />
             </div>
 
-            {/* Input */}
+            {/* Input — normal textarea OR multi-select panel */}
             <div className="flex-shrink-0 px-8 py-6 border-t border-slate-800/50 bg-slate-950/80">
-              {isListening && (
-                <div className="flex items-center gap-2 mb-2 px-1">
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-mic-pulse" />
-                  <span className="text-[10px] text-red-400 font-bold uppercase tracking-[0.2em]">Listening… tap mic to stop</span>
-                </div>
-              )}
-              <div className="flex gap-3 items-end">
-                <textarea
-                  ref={inputRef}
-                  id="answer-input"
-                  className="flex-1 bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600 resize-none font-medium leading-relaxed"
-                  placeholder={isListening ? 'Listening…' : waitingForFollowUp ? 'Clarify your answer…' : 'Type or speak your response…'}
-                  value={inputValue}
-                  onChange={e => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  rows={2}
-                />
-                {voiceSupported && (
+              {currentQuestion?.type === 'multiSelect' ? (
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400 mb-4">Select all that apply</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 max-h-72 overflow-y-auto pr-1">
+                    {currentQuestion.options?.map(opt => {
+                      const selected = multiSelectedOptions.includes(opt.value);
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => setMultiSelectedOptions(prev =>
+                            prev.includes(opt.value) ? prev.filter(v => v !== opt.value) : [...prev, opt.value]
+                          )}
+                          className={`flex items-start gap-3 rounded-2xl px-4 py-3 text-left transition-all border ${
+                            selected
+                              ? 'bg-blue-600/15 border-blue-500/50 text-white'
+                              : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+                          }`}
+                        >
+                          <div className={`w-4 h-4 mt-0.5 rounded-sm border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                            selected ? 'bg-blue-600 border-blue-600' : 'border-slate-600'
+                          }`}>
+                            {selected && (
+                              <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                                <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold leading-tight">{opt.label}</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{opt.desc}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                   <button
-                    id="mic-btn"
-                    onClick={toggleListening}
-                    title={isListening ? 'Stop recording' : 'Speak your answer'}
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
-                      isListening
-                        ? 'bg-red-600 text-white animate-mic-pulse shadow-lg shadow-red-900/40'
-                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
-                    }`}
+                    id="multiselect-continue-btn"
+                    onClick={handleMultiSelectSubmit}
+                    disabled={multiSelectedOptions.length === 0}
+                    className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                      <line x1="12" y1="19" x2="12" y2="23" />
-                      <line x1="8" y1="23" x2="16" y2="23" />
-                    </svg>
+                    Continue ({multiSelectedOptions.length} selected) <ArrowRight size={14} />
                   </button>
-                )}
-                <button
-                  id="send-btn"
-                  onClick={handleSubmit}
-                  disabled={!inputValue.trim() || isTyping}
-                  className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0 shadow-lg"
-                >
-                  <Send size={18} />
-                </button>
-              </div>
-              <p className="text-center text-[10px] text-slate-700 mt-3">Enter to send · Shift+Enter for new line{voiceSupported ? ' · Mic to speak' : ''}</p>
+                  {multiSelectedOptions.length === 0 && (
+                    <p className="text-center text-[10px] text-slate-600 mt-2">Select at least one option to continue</p>
+                  )}
+                </div>
+              ) : (
+                // Normal textarea input
+                <>
+                  {isListening && (
+                    <div className="flex items-center gap-2 mb-2 px-1">
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-mic-pulse" />
+                      <span className="text-[10px] text-red-400 font-bold uppercase tracking-[0.2em]">Listening… tap mic to stop</span>
+                    </div>
+                  )}
+                  <div className="flex gap-3 items-end">
+                    <textarea
+                      ref={inputRef}
+                      id="answer-input"
+                      className="flex-1 bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600 resize-none font-medium leading-relaxed"
+                      placeholder={isListening ? 'Listening…' : waitingForFollowUp ? 'Clarify your answer…' : 'Type or speak your response…'}
+                      value={inputValue}
+                      onChange={e => setInputValue(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      rows={2}
+                    />
+                    {voiceSupported && (
+                      <button
+                        id="mic-btn"
+                        onClick={toggleListening}
+                        title={isListening ? 'Stop recording' : 'Speak your answer'}
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
+                          isListening
+                            ? 'bg-red-600 text-white animate-mic-pulse shadow-lg shadow-red-900/40'
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
+                        }`}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                          <line x1="12" y1="19" x2="12" y2="23" />
+                          <line x1="8" y1="23" x2="16" y2="23" />
+                        </svg>
+                      </button>
+                    )}
+                    <button
+                      id="send-btn"
+                      onClick={handleSubmit}
+                      disabled={!inputValue.trim() || isTyping}
+                      className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0 shadow-lg"
+                    >
+                      <Send size={18} />
+                    </button>
+                  </div>
+                  <p className="text-center text-[10px] text-slate-700 mt-3">Enter to send · Shift+Enter for new line{voiceSupported ? ' · Mic to speak' : ''}</p>
+                </>
+              )}
             </div>
           </div>
         )}

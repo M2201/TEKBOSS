@@ -51,7 +51,7 @@ const STATIC_QUESTIONS = [
       { value: 'ecommerce', label: 'E-Commerce Automation', desc: 'Product descriptions, abandoned cart flows, inventory alerts, and order follow-up' },
     ]
   },
-  { id: 23, phase: 'Signal', text: 'In 90 days, if one thing in your business was finally running on autopilot — what would that one thing be? And what\'s the honest reason it hasn\'t happened yet?', hint: 'Name the specific process or task, then be real about the blocker — is it time, budget, not knowing where to start, or something else?', example: 'Client onboarding. It hasn\'t happened because every time I try to document the process, a real client need pulls me away — I keep deprioritising it.' },
+  { id: 23, phase: 'Signal', text: "When you try to make changes in your business, what usually gets in the way — is it time, budget, knowing where to start, or getting your team on board? And are you someone who typically figures it out yourself, or do you prefer to bring in someone to handle it?", hint: 'Be honest — this shapes how we sequence your recommendations and how much hand-holding the blueprint builds in.', example: "Honestly, it's always time — I start strong then real work pulls me back. And I'm a mix: I\'ll figure out simple tools myself but for anything complex I\'d rather hire it out." },
 ];
 
 // ─── Brand Logo ────────────────────────────────────────────────────────────────

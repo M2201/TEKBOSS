@@ -20,6 +20,7 @@ const COLORS = {
   gold:        '#F59E0B',
   emerald:     '#10B981',
   charcoal:    '#1E293B',
+  slateMid:    '#64748B',
 };
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
@@ -30,6 +31,13 @@ const R_MARGIN = 50;
 const CONTENT_W = PAGE_W - L_MARGIN - R_MARGIN;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function tryParseJson(str) {
+  try {
+    if (typeof str !== 'string') return str;
+    return JSON.parse(str.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim());
+  } catch { return null; }
+}
 
 function hexToRgb(hex) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -468,40 +476,126 @@ export function generateBlueprintPdf(pdfData) {
     drawSectionTitle(doc, 'YOUR BUSINESS INTELLIGENCE PREVIEW',
       'AI-generated analysis based on your discovery interview');
 
-    // Render preview report as cleaned plain text
+    // Render preview report from structured JSON (or fallback to markdown strip)
     if (pdfData.previewReport) {
-      const cleanText = pdfData.previewReport
-        .replace(/^#{1,6}\s+/gm, '')
-        .replace(/\*\*(.+?)\*\*/g, '$1')
-        .replace(/\*(.+?)\*/g, '$1')
-        .replace(/`(.+?)`/g, '$1')
-        .replace(/^[-•]\s+/gm, '  • ')
-        .trim();
+      const pr = (typeof pdfData.previewReport === 'string')
+        ? tryParseJson(pdfData.previewReport)
+        : pdfData.previewReport;
 
-      const sections = cleanText.split(/\n{2,}/);
-      sections.forEach(section => {
-        ensureSpace(doc, 60);
-        const lines = section.split('\n');
-        lines.forEach(line => {
-          if (!line.trim()) return;
-          if (line.startsWith('  • ')) {
-            doc.save().circle(L_MARGIN + 5, doc.y + 6, 3).fill(COLORS.lightBlue).restore();
-            doc.font('Helvetica').fontSize(10).fillColor(COLORS.slateLight)
-              .text(line.replace('  • ', ''), L_MARGIN + 16, doc.y, { width: CONTENT_W - 16, lineGap: 2 });
-          } else if (line.length < 60 && line === line.toUpperCase() && line.trim().length > 3) {
-            // Treat as a sub-heading
-            doc.moveDown(0.5);
-            doc.font('Helvetica-Bold').fontSize(11).fillColor(COLORS.lightBlue)
-              .text(line.trim(), L_MARGIN, doc.y, { width: CONTENT_W });
-            doc.moveDown(0.3);
-          } else {
-            doc.font('Helvetica').fontSize(10).fillColor(COLORS.slateLight)
-              .text(line.trim(), L_MARGIN, doc.y, { width: CONTENT_W, lineGap: 2 });
-          }
+      if (pr && typeof pr === 'object' && pr.stat) {
+        // ── Structured JSON rendering ───────────────────────────────────────
+
+        // Stat Hero
+        ensureSpace(doc, 50);
+        doc.rect(L_MARGIN, doc.y, CONTENT_W, 44).fill('#0E1A2E');
+        doc.font('Helvetica-Bold').fontSize(22).fillColor(COLORS.lightBlue)
+          .text(pr.stat.value || '—', L_MARGIN + 14, doc.y - 38, { width: CONTENT_W - 28 });
+        doc.font('Helvetica').fontSize(9).fillColor(COLORS.slateMid)
+          .text(pr.stat.context || '', L_MARGIN + 14, doc.y, { width: CONTENT_W - 28 });
+        doc.moveDown(1);
+
+        // Business Snapshot
+        if (pr.business_snapshot) {
+          doc.font('Helvetica-Oblique').fontSize(10).fillColor(COLORS.slateLight)
+            .text(pr.business_snapshot, L_MARGIN, doc.y, { width: CONTENT_W, lineGap: 3 });
+          doc.moveDown(1);
+        }
+
+        // Health Assessment
+        const healthLabel = { green: 'Well-Positioned', amber: 'Growth Opportunity', red: 'Priority Unlock' };
+        const healthColor = { green: '#10B981', amber: '#F59E0B', red: '#F97316' };
+        if (pr.health_assessment?.length) {
+          doc.font('Helvetica-Bold').fontSize(8).fillColor(COLORS.lightBlue)
+            .text('BUSINESS HEALTH ASSESSMENT', L_MARGIN, doc.y, { width: CONTENT_W });
+          doc.moveDown(0.4);
+          pr.health_assessment.forEach(item => {
+            ensureSpace(doc, 40);
+            const barColor = healthColor[item.tier] || '#F59E0B';
+            const barW = Math.round((item.score / 100) * (CONTENT_W - 30));
+            doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.white)
+              .text(item.category, L_MARGIN, doc.y, { width: 160 });
+            doc.font('Helvetica').fontSize(8).fillColor(barColor)
+              .text(`${item.score}% — ${healthLabel[item.tier] || ''}`, 380, doc.y - 10, { width: 120, align: 'right' });
+            doc.rect(L_MARGIN, doc.y + 2, CONTENT_W - 20, 4).fill('#1B2B4B');
+            doc.rect(L_MARGIN, doc.y + 2, barW, 4).fill(barColor);
+            doc.moveDown(0.4);
+            doc.font('Helvetica').fontSize(8).fillColor(COLORS.slateMid)
+              .text(item.insight || '', L_MARGIN, doc.y, { width: CONTENT_W });
+            doc.moveDown(0.7);
+          });
           doc.moveDown(0.3);
+        }
+
+        // What's Working
+        if (pr.whats_working?.length) {
+          doc.font('Helvetica-Bold').fontSize(8).fillColor('#10B981')
+            .text("WHAT'S ALREADY WORKING", L_MARGIN, doc.y, { width: CONTENT_W });
+          doc.moveDown(0.3);
+          pr.whats_working.forEach(item => {
+            ensureSpace(doc, 25);
+            doc.save().circle(L_MARGIN + 4, doc.y + 5, 3).fill('#10B981').restore();
+            doc.font('Helvetica').fontSize(9).fillColor(COLORS.slateLight)
+              .text(item, L_MARGIN + 14, doc.y, { width: CONTENT_W - 14, lineGap: 2 });
+            doc.moveDown(0.4);
+          });
+          doc.moveDown(0.4);
+        }
+
+        // Constraints as Unlocks
+        if (pr.constraints?.length) {
+          doc.font('Helvetica-Bold').fontSize(8).fillColor('#F59E0B')
+            .text('GROWTH UNLOCKS IDENTIFIED', L_MARGIN, doc.y, { width: CONTENT_W });
+          doc.moveDown(0.3);
+          pr.constraints.forEach(item => {
+            ensureSpace(doc, 25);
+            doc.save().circle(L_MARGIN + 4, doc.y + 5, 3).fill('#F59E0B').restore();
+            doc.font('Helvetica').fontSize(9).fillColor(COLORS.slateLight)
+              .text(item, L_MARGIN + 14, doc.y, { width: CONTENT_W - 14, lineGap: 2 });
+            doc.moveDown(0.4);
+          });
+          doc.moveDown(0.4);
+        }
+
+        // Highest Leverage Move
+        if (pr.highest_leverage_move) {
+          ensureSpace(doc, 60);
+          doc.rect(L_MARGIN, doc.y, CONTENT_W, 52).fill('#0E1A2E');
+          doc.font('Helvetica-Bold').fontSize(8).fillColor('#F59E0B')
+            .text('YOUR HIGHEST-LEVERAGE MOVE', L_MARGIN + 12, doc.y - 46, { width: CONTENT_W - 24 });
+          doc.font('Helvetica').fontSize(9).fillColor(COLORS.slateLight)
+            .text(pr.highest_leverage_move, L_MARGIN + 12, doc.y, { width: CONTENT_W - 24, lineGap: 2 });
+          doc.moveDown(1);
+        }
+
+      } else {
+        // ── Fallback: plain text rendering (pre-JSON format) ──────────────
+        const rawStr = typeof pdfData.previewReport === 'string' ? pdfData.previewReport : JSON.stringify(pdfData.previewReport);
+        const cleanText = rawStr
+          .replace(/^#{1,6}\s+/gm, '')
+          .replace(/\*\*(.+?)\*\*/g, '$1')
+          .replace(/\*(.+?)\*/g, '$1')
+          .replace(/`(.+?)`/g, '$1')
+          .replace(/^[-•]\s+/gm, '  • ')
+          .trim();
+        const sections = cleanText.split(/\n{2,}/);
+        sections.forEach(section => {
+          ensureSpace(doc, 60);
+          const lines = section.split('\n');
+          lines.forEach(line => {
+            if (!line.trim()) return;
+            if (line.startsWith('  • ')) {
+              doc.save().circle(L_MARGIN + 5, doc.y + 6, 3).fill(COLORS.lightBlue).restore();
+              doc.font('Helvetica').fontSize(10).fillColor(COLORS.slateLight)
+                .text(line.replace('  • ', ''), L_MARGIN + 16, doc.y, { width: CONTENT_W - 16, lineGap: 2 });
+            } else {
+              doc.font('Helvetica').fontSize(10).fillColor(COLORS.slateLight)
+                .text(line.trim(), L_MARGIN, doc.y, { width: CONTENT_W, lineGap: 2 });
+            }
+            doc.moveDown(0.3);
+          });
+          doc.moveDown(0.5);
         });
-        doc.moveDown(0.5);
-      });
+      }
     }
 
     drawPageFooter(doc, pageNum++);

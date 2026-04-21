@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import IntelligenceEngineLoader from './IntelligenceEngineLoader';
+import PreviewReport from './PreviewReport';
 import ReactMarkdown from 'react-markdown';
 import {
   ChevronRight, Cpu, FileText, Lock, MessageSquare, BarChart3,
@@ -212,6 +213,8 @@ export default function App() {
   // DFY state
   const [dfySubmitted, setDfySubmitted] = useState(false);
   const [dfyEmail, setDfyEmail] = useState('');
+  const [driveLink, setDriveLink] = useState(null);
+  const [driveLoading, setDriveLoading] = useState(false);
 
   // ─── Auth state ─────────────────────────────────────────────────────────────
   const [user, setUser] = useState(null);
@@ -450,6 +453,38 @@ export default function App() {
     } else if (payment === 'cancelled') {
       window.history.replaceState({}, '', '/');
     }
+  }, [previewData]);
+
+  // Auto-save preview to Google Drive when previewData is first received
+  useEffect(() => {
+    if (!previewData?.previewReport || driveLink || driveLoading) return;
+    const autoSaveToDrive = async () => {
+      setDriveLoading(true);
+      try {
+        const res = await fetch('/api/save-to-drive', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            businessName,
+            previewReport: JSON.stringify(previewData.previewReport),
+            brandDna: previewData._internal?.brandDna || null,
+            marketIntel: previewData._internal?.marketIntel || null,
+            roiData: previewData._internal?.roiData || null,
+            generatedAt: previewData.generatedAt,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.driveLink) setDriveLink(data.driveLink);
+        }
+      } catch (e) {
+        console.warn('Drive auto-save skipped:', e.message);
+      } finally {
+        setDriveLoading(false);
+      }
+    };
+    autoSaveToDrive();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewData]);
 
   const fetchFollowUp = async (question, answer) => {
@@ -1122,155 +1157,20 @@ export default function App() {
 
         {/* ── STAGE 3: Preview Report ── */}
         {stage === 3 && (
-          <div className="flex-1 overflow-y-auto">
-            <div className="max-w-4xl mx-auto py-16 px-8">
-              {error && !previewData ? (
-                <div className="text-center py-24">
-                  <AlertTriangle size={64} className="text-red-500 mx-auto mb-6" />
-                  <h2 className="text-4xl font-black text-white mb-4 tracking-tighter uppercase">Synthesis Interrupted</h2>
-                  <p className="text-slate-400 text-sm mb-8 font-medium leading-relaxed">{error}</p>
-                  <button onClick={() => generatePreview(answers)} className="bg-blue-600 text-white font-black px-12 py-5 rounded-2xl uppercase tracking-widest text-xs flex items-center gap-2 mx-auto hover:bg-blue-500 transition-colors">
-                    <RefreshCw size={16} /> Retry
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <header className="text-center mb-12">
-                    <div className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600/10 text-blue-400 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-6 border border-blue-600/20">
-                      <BarChart3 size={14} /> Preview Report — Complimentary
-                    </div>
-                    <h2 className="text-5xl font-black text-white mb-4 tracking-tighter leading-none">
-                      {businessName ? `${businessName}'s` : 'Your'} AI Blueprint Preview
-                    </h2>
-                    <p className="text-lg text-slate-400 max-w-2xl mx-auto font-medium leading-relaxed">
-                      Based on your discovery interview, here's what we see — and what's possible.
-                    </p>
-                  </header>
-
-                  {/* Preview Report Content */}
-                  {previewData?.previewReport && (
-                    <div className="bg-slate-900/60 border border-slate-800 rounded-[2rem] p-10 mb-4 shadow-xl">
-                      <MarkdownContent content={previewData.previewReport} />
-                    </div>
-                  )}
-
-                  {/* PDF Download button (preview) */}
-                  {previewData?.previewReport && (
-                    <div className="flex justify-center mb-8">
-                      <button
-                        id="download-pdf-preview"
-                        onClick={() => downloadPdf(previewData)}
-                        disabled={pdfDownloading}
-                        className="flex items-center gap-2.5 px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-blue-500/40 text-slate-300 hover:text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                        {pdfDownloading ? 'Generating PDF…' : 'Download Preview as PDF'}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Unlock Sections */}
-                  <div className="mb-10">
-                    <div className="text-center mb-8">
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-500 mb-2">What's inside the full blueprint</p>
-                      <h3 className="text-2xl font-black text-white tracking-tighter uppercase">Unlock These Features</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <LockedSection icon={Layers} title="System Architecture" description="How your named systems connect and interact — the full operating blueprint for your AI-powered business." />
-                      <LockedSection icon={Target} title="90-Day Implementation Plan" description="Phase-by-phase roadmap: Foundation (Days 1-30), Activation (Days 31-60), Optimization (Days 61-90)." />
-                      <LockedSection icon={Zap} title="Tool Stack & Automation Workflows" description="Specific tool decisions with step-by-step automation workflows — what connects to what, exactly." />
-                      <LockedSection icon={FileText} title="Prompt Templates & Brand Voice" description="Copy-paste prompt templates with your brand tone baked in. Plus complete brand governance framework." />
-                      <LockedSection icon={ShieldCheck} title="Custom Scope of Work (SOW)" description="Partner-ready implementation document with deliverables, outcomes, and acceptance criteria." />
-                      <LockedSection icon={Bot} title="90-Day Build-Out Coach" description="Your AI-guided coach walks you through every system — step by step, tailored to your business." />
-                    </div>
-                  </div>
-
-                  {/* Execution Gap */}
-                  <div className="bg-slate-900/80 border border-slate-700/50 rounded-[2rem] p-10 mb-10 text-center">
-                    <div className="w-14 h-14 bg-blue-600/10 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-blue-500/20">
-                      <TrendingUp size={28} />
-                    </div>
-                    <h3 className="text-2xl font-black text-white mb-4 tracking-tighter uppercase">The Execution Gap</h3>
-                    <p className="text-slate-400 text-sm max-w-lg mx-auto leading-relaxed mb-4">
-                      Tools like ChatGPT, Claude, and Gemini can answer individual questions — but assembling those answers into a connected, executable business system takes dozens of hours of iteration, validation, and decision-making.
-                    </p>
-                    <p className="text-blue-400 font-black text-lg tracking-tight">
-                      The gap is not effort — it's system design.
-                    </p>
-                  </div>
-
-                  {/* Single Pricing Card — $599 */}
-                  <div className="mt-16">
-                    <div className="max-w-xl mx-auto">
-                      <div className="bg-gradient-to-b from-blue-900/40 to-slate-900 border border-blue-500/30 rounded-[2.5rem] p-10 text-center relative shadow-2xl shadow-blue-900/20 overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
-                        
-                        <div className="flex justify-center mb-6">
-                          <BrandLogo size="xl" className="rounded-2xl border border-blue-500/20 shadow-lg" />
-                        </div>
-
-                        <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2">TEK BOSS AI Blueprint</h3>
-                        <p className="text-blue-300/60 text-xs font-bold uppercase tracking-[0.2em] mb-6">Complete AI Business Operating System</p>
-                        
-                        <div className="text-5xl font-black text-white mb-8">
-                          $599
-                          <span className="text-sm text-slate-500 font-bold ml-2">one-time</span>
-                        </div>
-
-                        <div className="text-left mb-8 space-y-3">
-                          <div className="flex items-start gap-3">
-                            <CheckCircle size={16} className="text-blue-400 shrink-0 mt-0.5" />
-                            <span className="text-sm text-slate-300 font-medium">Full AI Blueprint with Named Systems & Architecture</span>
-                          </div>
-                          <div className="flex items-start gap-3">
-                            <CheckCircle size={16} className="text-blue-400 shrink-0 mt-0.5" />
-                            <span className="text-sm text-slate-300 font-medium">90-Day Implementation Roadmap (Phase 1 → 2 → 3)</span>
-                          </div>
-                          <div className="flex items-start gap-3">
-                            <CheckCircle size={16} className="text-blue-400 shrink-0 mt-0.5" />
-                            <span className="text-sm text-slate-300 font-medium">Tool Stack Decisions & Automation Workflows</span>
-                          </div>
-                          <div className="flex items-start gap-3">
-                            <CheckCircle size={16} className="text-blue-400 shrink-0 mt-0.5" />
-                            <span className="text-sm text-slate-300 font-medium">Prompt Templates with Brand Voice Built In</span>
-                          </div>
-                          <div className="flex items-start gap-3">
-                            <CheckCircle size={16} className="text-blue-400 shrink-0 mt-0.5" />
-                            <span className="text-sm text-slate-300 font-medium">Custom Scope of Work (SOW) — Partner-Ready</span>
-                          </div>
-                          <div className="flex items-start gap-3">
-                            <CheckCircle size={16} className="text-blue-400 shrink-0 mt-0.5" />
-                            <span className="text-sm text-slate-300 font-medium">90-Day AI Build-Out Coach — Guided Setup Included</span>
-                          </div>
-                        </div>
-
-                        <button
-                          id="purchase-blueprint-btn"
-                          onClick={handleCheckout}
-                          disabled={blueprintLoading}
-                          className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl hover:bg-blue-500 uppercase tracking-widest text-xs shadow-xl shadow-blue-900/40 flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
-                        >
-                          {blueprintLoading ? (
-                            <><RefreshCw size={16} className="animate-spin" /> Generating Blueprint...</>
-                          ) : (
-                            <>Get Your AI Blueprint <ArrowRight size={16} /></>
-                          )}
-                        </button>
-
-                        <div className="mt-4 flex items-center justify-center gap-1 text-[10px] text-slate-500">
-                          <Clock size={10} />
-                          <span>Includes 90-day Build-Out Coach · then $34.99/mo · cancel anytime</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+          <PreviewReport
+            previewData={previewData}
+            businessName={businessName}
+            onDownload={downloadPdf}
+            onCheckout={handleCheckout}
+            pdfDownloading={pdfDownloading}
+            blueprintLoading={blueprintLoading}
+            driveLink={driveLink}
+            driveLoading={driveLoading}
+            error={error}
+            onRetry={() => generatePreview(answers)}
+          />
         )}
+
 
         {/* ── STAGE 4: Full Blueprint ── */}
         {stage === 4 && (

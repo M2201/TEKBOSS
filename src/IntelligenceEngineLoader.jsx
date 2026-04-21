@@ -119,8 +119,9 @@ const IntelligenceEngineLoader = ({
     if (isCompleting || completedRef.current) return;
     
     const textInterval = setInterval(() => {
-      setCurrentTextIndex(prev => (prev + 1) % subLabels.length);
-    }, 3500);
+      // Sequential only — never loop back. Hold on final label until complete.
+      setCurrentTextIndex(prev => Math.min(prev + 1, subLabels.length - 1));
+    }, 3200);
 
     return () => clearInterval(textInterval);
   }, [isCompleting, subLabels.length]);

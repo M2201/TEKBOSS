@@ -843,13 +843,15 @@ export default function App() {
                     className="relative w-full max-w-3xl aspect-video rounded-2xl overflow-hidden shadow-2xl"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <iframe
-                      src="https://app.heygen.com/embed/ea9f9e77dbc14e208a02880b345b6a8d"
-                      title="TekBoss AI Blueprint — Explainer Video"
-                      allow="autoplay; fullscreen"
-                      allowFullScreen
-                      className="w-full h-full border-0"
-                    />
+                    <video
+                      src="/tekboss-explainer.mp4"
+                      controls
+                      autoPlay
+                      className="w-full h-full rounded-2xl"
+                      style={{ background: '#000' }}
+                    >
+                      Your browser does not support the video tag.
+                    </video>
                     <button
                       onClick={() => setVideoModalOpen(false)}
                       className="absolute top-3 right-3 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-colors"

@@ -237,6 +237,7 @@ CRITICAL RULES — DO NOT INCLUDE:
 - Full system architectures or workflows
 - Named system components or details (you CAN mention system NAMES but not how they work)
 - Prompt templates or automation specifics
+- Meta-commentary about the report itself (NEVER write phrases like "this preview is designed to...", "this report builds anticipation", "this assessment is intended to...", or any sentence that describes what the document is doing — the document must demonstrate value, not narrate itself)
 
 DO INCLUDE:
 - Deep business understanding (prove you "get" them)
@@ -462,7 +463,12 @@ OUTPUT FORMAT (strict JSON only, no markdown, no commentary outside the JSON):
     "preferredPhrasing": ["Preferred phrase 1", "Preferred phrase 2"]
   },
   "visualAesthetic": {
-    "colorDescription": "Describe the visual feeling, not specific hex codes.",
+    "colorPalette": [
+      { "name": "Primary", "hex": "#RRGGBB" },
+      { "name": "Secondary", "hex": "#RRGGBB" },
+      { "name": "Accent", "hex": "#RRGGBB" },
+      { "name": "Neutral", "hex": "#RRGGBB" }
+    ],
     "typographyFeel": "Clean and minimal? Bold and editorial? Warm and handcrafted?",
     "imageryStyle": "What kind of photography or illustration fits the brand?"
   },

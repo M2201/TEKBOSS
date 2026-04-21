@@ -56,6 +56,17 @@ function ensureSpace(doc, needed = 120) {
   if (doc.y > PAGE_H - needed) doc.addPage();
 }
 
+// Fill full page dark background — call immediately after addPage()
+function fillPageBackground(doc) {
+  fillRect(doc, 0, 0, PAGE_W, PAGE_H, COLORS.darkNavy);
+}
+
+// Start a new content page with dark background + header in one call
+function startContentPage(doc, sectionTitle) {
+  fillPageBackground(doc);
+  drawPageHeader(doc, sectionTitle);
+}
+
 function safeText(val) {
   if (!val) return '';
   if (typeof val === 'string') return val;
@@ -239,6 +250,42 @@ function drawSystemCard(doc, system) {
   doc.y = doc.y + cardH + 12;
 }
 
+// ─── Brand Color Swatches ────────────────────────────────────────────────────
+
+function drawColorSwatches(doc, colorPalette) {
+  if (!Array.isArray(colorPalette) || !colorPalette.length) return;
+
+  doc.moveDown(0.5);
+  ensureSpace(doc, 80);
+  doc.font('Helvetica-Bold').fontSize(11).fillColor(COLORS.lightBlue)
+    .text('Brand Color Palette', L_MARGIN);
+  doc.moveDown(0.5);
+
+  const swatchW = 60;
+  const swatchH = 44;
+  const gap = 16;
+  const startX = L_MARGIN;
+  const startY = doc.y;
+
+  colorPalette.slice(0, 5).forEach((swatch, i) => {
+    const x = startX + i * (swatchW + gap);
+    const hex = (swatch.hex || '#1B2B4B').replace(/[^#A-Fa-f0-9]/g, '').slice(0, 7);
+    const safehex = /^#[0-9A-Fa-f]{6}$/.test(hex) ? hex : '#1B2B4B';
+
+    // Color block
+    fillRect(doc, x, startY, swatchW, swatchH, safehex);
+    // Thin border
+    doc.save().rect(x, startY, swatchW, swatchH)
+      .strokeColor(COLORS.slate).lineWidth(0.5).stroke().restore();
+    // Label
+    doc.font('Helvetica').fontSize(7).fillColor(COLORS.slateLight)
+      .text(swatch.name || safehex, x, startY + swatchH + 4, { width: swatchW, align: 'center' });
+  });
+
+  doc.y = startY + swatchH + 22;
+  doc.moveDown(0.5);
+}
+
 // ─── Brand DNA Section ────────────────────────────────────────────────────────
 
 function drawBrandDnaSection(doc, brandDna) {
@@ -273,6 +320,18 @@ function drawBrandDnaSection(doc, brandDna) {
     drawBulletList(doc, brandDna.voiceAndTone.forbiddenWords, '#EF4444');
   }
 
+  // Color Palette Swatches
+  if (brandDna.visualAesthetic?.colorPalette?.length) {
+    drawColorSwatches(doc, brandDna.visualAesthetic.colorPalette);
+  } else if (brandDna.visualAesthetic?.colorDescription) {
+    drawCard(doc, 'Brand Color Direction', brandDna.visualAesthetic.colorDescription, COLORS.skyBlue);
+  }
+
+  // Typography Feel
+  if (brandDna.visualAesthetic?.typographyFeel) {
+    drawCard(doc, 'Typography Feel', brandDna.visualAesthetic.typographyFeel, COLORS.slate);
+  }
+
   // Elevator Statement
   if (brandDna.elevatorStatement) {
     doc.moveDown(0.5);
@@ -286,6 +345,7 @@ function drawBrandDnaSection(doc, brandDna) {
 
   sectionDivider(doc);
 }
+
 
 // ─── Market Intel Section ─────────────────────────────────────────────────────
 
@@ -403,6 +463,7 @@ export function generateBlueprintPdf(pdfData) {
     drawCoverPage(doc, pdfData.businessName, pdfData.generatedAt);
 
     // ── Page 2: Preview Report ─────────────────────────────────────────────
+    fillPageBackground(doc); // Dark background for content pages
     drawPageHeader(doc, 'Intelligence Preview');
     drawSectionTitle(doc, 'YOUR BUSINESS INTELLIGENCE PREVIEW',
       'AI-generated analysis based on your discovery interview');
@@ -449,7 +510,7 @@ export function generateBlueprintPdf(pdfData) {
     // ── Brand DNA ──────────────────────────────────────────────────────────
     if (pdfData.brandDna) {
       doc.addPage();
-      drawPageHeader(doc, 'Brand DNA Profile');
+      startContentPage(doc, 'Brand DNA Profile');
       drawBrandDnaSection(doc, pdfData.brandDna);
       drawPageFooter(doc, pageNum++);
     }
@@ -457,7 +518,7 @@ export function generateBlueprintPdf(pdfData) {
     // ── Market Intel ───────────────────────────────────────────────────────
     if (pdfData.marketIntel) {
       doc.addPage();
-      drawPageHeader(doc, 'Competitive Intelligence');
+      startContentPage(doc, 'Competitive Intelligence');
       drawMarketSection(doc, pdfData.marketIntel);
       drawPageFooter(doc, pageNum++);
     }
@@ -465,7 +526,7 @@ export function generateBlueprintPdf(pdfData) {
     // ── ROI Data ───────────────────────────────────────────────────────────
     if (pdfData.roiData) {
       doc.addPage();
-      drawPageHeader(doc, 'Revenue & Time Opportunity');
+      startContentPage(doc, 'Revenue & Time Opportunity');
       drawRoiSection(doc, pdfData.roiData);
       drawPageFooter(doc, pageNum++);
     }
@@ -475,7 +536,7 @@ export function generateBlueprintPdf(pdfData) {
       (Array.isArray(pdfData.diyPlaybook) ? pdfData.diyPlaybook : null);
     if (Array.isArray(systems) && systems.length) {
       doc.addPage();
-      drawPageHeader(doc, 'Named Systems');
+      startContentPage(doc, 'Named Systems');
       drawSectionTitle(doc, 'YOUR AI-POWERED NAMED SYSTEMS',
         'Custom-designed systems for your specific business operations');
       systems.forEach(s => drawSystemCard(doc, s));
@@ -485,7 +546,7 @@ export function generateBlueprintPdf(pdfData) {
     // ── Full Blueprint (playbook text) ─────────────────────────────────────
     if (pdfData.diyPlaybook && typeof pdfData.diyPlaybook === 'string') {
       doc.addPage();
-      drawPageHeader(doc, 'Full Blueprint');
+      startContentPage(doc, 'Full Blueprint');
       drawSectionTitle(doc, 'FULL ORCHESTRATION PLAYBOOK',
         'Your complete AI implementation blueprint');
 

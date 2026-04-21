@@ -1,7 +1,7 @@
 /**
  * IMPLEMENTATION ASSISTANT
- * Blueprint-grounded AI coaching system with dynamic knowledge injection.
- * Tool and pattern knowledge is selected per user based on their blueprint context.
+ * Blueprint-grounded AI coaching system with dynamic knowledge injection
+ * and invisible DISC personality adaptation.
  */
 import { GoogleGenAI } from '@google/genai';
 import {
@@ -9,21 +9,34 @@ import {
     buildAssistantContext
 } from './prompts.js';
 import { buildCoachingKnowledgeBlock } from '../knowledge/selectKnowledge.js';
+import {
+    buildProfile,
+    getProbeInstruction,
+    getCoachingStyleInstruction,
+} from '../knowledge/personalityEngine.js';
 
 export async function runImplementationAssistant(apiKey, blueprint, userMessage, conversationHistory = []) {
     const ai = new GoogleGenAI({ apiKey });
     const contextMessage = buildAssistantContext(blueprint, userMessage);
 
-    // Build dynamic knowledge block for this user's tools + systems
-    const knowledgeBlock = buildCoachingKnowledgeBlock(blueprint);
+    // ── Personality adaptation ───────────────────────────────────────────────
+    const discAccumulator = blueprint?.discAccumulator || { D: 0, I: 0, S: 0, C: 0 };
+    const interactionCount = blueprint?.coachInteractionCount || 0;
+    const personalityProfile = buildProfile(discAccumulator, interactionCount);
 
-    // System instruction = base coaching prompt + relevant knowledge
-    const systemInstruction = IMPLEMENTATION_ASSISTANT_PROMPT + knowledgeBlock;
+    const coachingStyleBlock = getCoachingStyleInstruction(personalityProfile);
+    const probeInstruction    = getProbeInstruction(interactionCount);
 
-    // Build conversation with history
+    // ── System instruction ───────────────────────────────────────────────────
+    // Base prompt + coaching knowledge (tool-specific) + personality style + probe
+    const knowledgeBlock   = buildCoachingKnowledgeBlock(blueprint);
+    let systemInstruction  = IMPLEMENTATION_ASSISTANT_PROMPT + knowledgeBlock + coachingStyleBlock;
+    if (probeInstruction) {
+        systemInstruction += `\n\n---\nPROBE INJECTION INSTRUCTION (for this response only):\n${probeInstruction}\n---\n`;
+    }
+
+    // ── Conversation ─────────────────────────────────────────────────────────
     const contents = [];
-
-    // Add conversation history (up to last 10 exchanges)
     const recentHistory = conversationHistory.slice(-20);
     for (const msg of recentHistory) {
         contents.push({
@@ -31,8 +44,6 @@ export async function runImplementationAssistant(apiKey, blueprint, userMessage,
             parts: [{ text: msg.content }]
         });
     }
-
-    // Add the current message with blueprint context
     contents.push({
         role: 'user',
         parts: [{ text: contextMessage }]
@@ -50,7 +61,7 @@ export async function runImplementationAssistant(apiKey, blueprint, userMessage,
         });
 
         const text = response.text.trim();
-        console.log('✅ Implementation Assistant response generated');
+        console.log(`✅ Coach response | turn=${interactionCount} | DISC=${personalityProfile.primary || 'inferring'}`);
         return text;
     } catch (err) {
         const msg = err.message || '';
@@ -61,3 +72,4 @@ export async function runImplementationAssistant(apiKey, blueprint, userMessage,
         return 'I was unable to process your request. Please try rephrasing your question, or contact support if this persists.';
     }
 }
+

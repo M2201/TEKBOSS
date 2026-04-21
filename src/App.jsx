@@ -227,6 +227,8 @@ export default function App() {
   const [assistantMessages, setAssistantMessages] = useState([]);
   const [assistantInput, setAssistantInput] = useState('');
   const [assistantTyping, setAssistantTyping] = useState(false);
+  // DISC personality inference — accumulates silently across coaching interactions
+  const [discAccumulator, setDiscAccumulator] = useState({ D: 0, I: 0, S: 0, C: 0 });
   // DFY state
   const [dfySubmitted, setDfySubmitted] = useState(false);
   const [dfyEmail, setDfyEmail] = useState('');
@@ -823,11 +825,38 @@ export default function App() {
     }
   };
 
+  // Score a message for DISC signals (client-side accumulation)
+  const scoreMessageForDISC = (msg) => {
+    const lower = msg.toLowerCase();
+    const words = msg.trim().split(/\s+/).length;
+    const D = ['fast','quick','now','asap','result','win','goal','direct','decide','action','move','drive','done','deadline','control','just do','bottom line','roi','execute'].filter(k => lower.includes(k)).length
+             + (words < 20 ? 1.5 : 0) + (/\b(just|simply|straight up)\b/.test(lower) ? 0.5 : 0);
+    const I = ['team','people','together','excited','love','feel','share','community','connect','vision','everyone','culture','inspire','energy','fun','relationship','partner','awesome','amazing'].filter(k => lower.includes(k)).length
+             + (/!/.test(msg) ? 1 : 0);
+    const S = ['careful','step','slow','stable','consistent','plan','process','wait','secure','safe','steady','worried','concerned','risk','buy-in'].filter(k => lower.includes(k)).length
+             + (/\b(i think|maybe|kind of|not sure|i guess|sort of)\b/.test(lower) ? 1 : 0);
+    const C = ['data','analytics','accurate','measure','detail','research','proven','track','understand','specific','exactly','evidence','compare','precisely','technically','why does','how does'].filter(k => lower.includes(k)).length
+             + (words > 90 ? 1.5 : 0) + (/\b(specifically|exactly|precisely)\b/.test(lower) ? 1 : 0);
+    return { D, I, S, C };
+  };
+
   const handleAssistantSubmit = async () => {
     const trimmed = assistantInput.trim();
     if (!trimmed) return;
 
     const userMsg = { role: 'user', content: trimmed, timestamp: new Date().toISOString() };
+
+    // Score this message and update the DISC accumulator
+    const delta = scoreMessageForDISC(trimmed);
+    const newAccumulator = {
+      D: discAccumulator.D + delta.D,
+      I: discAccumulator.I + delta.I,
+      S: discAccumulator.S + delta.S,
+      C: discAccumulator.C + delta.C,
+    };
+    setDiscAccumulator(newAccumulator);
+    const coachInteractionCount = assistantMessages.filter(m => m.role === 'user').length + 1;
+
     setAssistantMessages(prev => [...prev, userMsg]);
     setAssistantInput('');
     setAssistantTyping(true);
@@ -847,6 +876,10 @@ export default function App() {
             brandVoice: previewData?._internal?.validatedData?.brandFoundation?.emotionalTone?.join(', ') || '',
             constraints: previewData?._internal?.validatedData?.brandFoundation?.doNotSayLanguage || [],
             fullBlueprint: blueprint?.diyPlaybook || '',
+            existingToolStack: previewData?._internal?.validatedData?.existingToolStack || [],
+            // DISC personality signals (invisible to user)
+            discAccumulator: newAccumulator,
+            coachInteractionCount,
           },
         }),
       });

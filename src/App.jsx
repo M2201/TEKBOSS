@@ -293,6 +293,7 @@ export default function App() {
   const assistantBottomRef = useRef(null);
   const assistantInputRef = useRef(null);
   const recognitionRef = useRef(null);
+  const finalTranscriptRef = useRef(''); // reset per-question, no need to stop recognition
   const landingScrollRef = useRef(null);
 
   // ─── Voice input state ───────────────────────────────────────────────
@@ -323,13 +324,12 @@ export default function App() {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;       // Keep listening through pauses
-    recognition.interimResults = true;   // Stream text in real-time as you speak
+    recognition.continuous = true;       // Stay open across pauses AND question advances
+    recognition.interimResults = true;   // Stream text in real-time
     recognition.lang = 'en-US';
 
-    let finalTranscript = '';            // Accumulated confirmed words — reset fresh each session
-
-    // Clear any residual text so the new session starts blank
+    // Use a ref so we can reset between questions without killing the session
+    finalTranscriptRef.current = '';
     setInputValue('');
 
     recognition.onstart = () => setIsListening(true);
@@ -337,11 +337,9 @@ export default function App() {
     recognition.onend = () => {
       setIsListening(false);
       recognitionRef.current = null;
-      // Keep whatever was typed — don't clear it
     };
 
     recognition.onerror = (event) => {
-      // 'no-speech' is normal (user paused) — don't stop for it
       if (event.error !== 'no-speech') {
         stopListening();
       }
@@ -353,14 +351,13 @@ export default function App() {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
-          finalTranscript += result[0].transcript + ' ';
+          finalTranscriptRef.current += result[0].transcript + ' ';
         } else {
           interimTranscript += result[0].transcript;
         }
       }
 
-      // Show final words + live preview of current phrase being spoken
-      setInputValue((finalTranscript + interimTranscript).trim());
+      setInputValue((finalTranscriptRef.current + interimTranscript).trim());
     };
 
     recognitionRef.current = recognition;
@@ -532,8 +529,8 @@ export default function App() {
     const trimmed = inputValue.trim();
     if (!trimmed || !currentQuestion) return;
 
-    // Stop mic immediately — prevents old transcript bleeding into next question
-    stopListening();
+    // Reset transcript ref so the next question starts clean — mic stays open
+    finalTranscriptRef.current = '';
 
     setMessages(prev => [...prev, { role: 'user', text: trimmed }]);
     setInputValue('');
@@ -578,7 +575,7 @@ export default function App() {
 
   const handleMultiSelectSubmit = async () => {
     if (!currentQuestion || multiSelectedOptions.length === 0) return;
-    stopListening(); // safety — stop any open mic session
+    finalTranscriptRef.current = ''; // reset transcript ref
     const selectedLabels = currentQuestion.options
       .filter(o => multiSelectedOptions.includes(o.value))
       .map(o => o.label)

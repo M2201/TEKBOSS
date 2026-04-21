@@ -728,6 +728,45 @@ export default function App() {
   };
 
   // ─── Implementation Assistant ───────────────────────────────────────────────
+
+  // Auto-fire opening coaching message when Stage 4 first loads
+  useEffect(() => {
+    if (stage === 4 && assistantMessages.length === 0 && (blueprint || previewData)) {
+      sendAssistantKickoff();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage]);
+
+  const sendAssistantKickoff = async () => {
+    setAssistantTyping(true);
+    try {
+      const res = await fetch('/api/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          message: 'Start the coaching session. Open by identifying the highest-leverage system from the blueprint and establish the Week 1 implementation agenda.',
+          conversationHistory: [],
+          blueprintContext: {
+            businessName: businessName || 'Your Business',
+            systems: previewData?._internal?.validatedData?.namedSystems || [],
+            goals: previewData?._internal?.validatedData?.opportunityZones || [],
+            brandVoice: previewData?._internal?.validatedData?.brandFoundation?.emotionalTone?.join(', ') || '',
+            constraints: previewData?._internal?.validatedData?.brandFoundation?.doNotSayLanguage || [],
+            fullBlueprint: blueprint?.diyPlaybook || '',
+            isKickoff: true,
+          },
+        }),
+      });
+      const data = await res.json();
+      setAssistantMessages([{ role: 'assistant', content: data.response, timestamp: new Date().toISOString() }]);
+    } catch {
+      setAssistantMessages([{ role: 'assistant', content: `Let's build your blueprint out. I'll lead — you execute. What system should we start with?`, timestamp: new Date().toISOString() }]);
+    } finally {
+      setAssistantTyping(false);
+    }
+  };
+
   const handleAssistantSubmit = async () => {
     const trimmed = assistantInput.trim();
     if (!trimmed) return;
@@ -741,6 +780,7 @@ export default function App() {
       const res = await fetch('/api/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           message: trimmed,
           conversationHistory: assistantMessages,
@@ -755,17 +795,9 @@ export default function App() {
         }),
       });
       const data = await res.json();
-      setAssistantMessages(prev => [...prev, {
-        role: 'assistant',
-        content: data.response,
-        timestamp: new Date().toISOString(),
-      }]);
+      setAssistantMessages(prev => [...prev, { role: 'assistant', content: data.response, timestamp: new Date().toISOString() }]);
     } catch (err) {
-      setAssistantMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'I was unable to process your request. Please try again.',
-        timestamp: new Date().toISOString(),
-      }]);
+      setAssistantMessages(prev => [...prev, { role: 'assistant', content: 'I was unable to process your request. Please try again.', timestamp: new Date().toISOString() }]);
     } finally {
       setAssistantTyping(false);
       setTimeout(() => assistantInputRef.current?.focus(), 100);
@@ -1267,10 +1299,11 @@ export default function App() {
                       ref={inputRef}
                       id="answer-input"
                       className="flex-1 bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600 resize-none font-medium leading-relaxed"
-                      placeholder={isListening ? 'Listening…' : waitingForFollowUp ? 'Clarify your answer…' : 'Type or speak your response…'}
+                      placeholder={isListening ? 'Listening… (click here to edit manually)' : waitingForFollowUp ? 'Clarify your answer…' : 'Type or speak your response…'}
                       value={inputValue}
                       onChange={e => setInputValue(e.target.value)}
                       onKeyDown={handleKeyDown}
+                      onMouseDown={() => { if (isListening) stopListening(); }}
                       rows={2}
                     />
                     {voiceSupported && (

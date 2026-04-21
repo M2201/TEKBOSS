@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import IntelligenceEngineLoader from './IntelligenceEngineLoader';
+import BlueprintLoader from './BlueprintLoader';
 import PreviewReport from './PreviewReport';
 import ReactMarkdown from 'react-markdown';
 import {
@@ -1456,20 +1457,24 @@ export default function App() {
           />
         )}
 
-        {/* ── STAGE 3: Preview Report ── */}
+        {/* ── STAGE 3: Preview Report (or Blueprint Generation in progress) ── */}
         {stage === 3 && (
-          <PreviewReport
-            previewData={previewData}
-            businessName={businessName}
-            onDownload={downloadPdf}
-            onCheckout={handleCheckout}
-            pdfDownloading={pdfDownloading}
-            blueprintLoading={blueprintLoading}
-            driveLink={driveLink}
-            driveLoading={driveLoading}
-            error={error}
-            onRetry={() => generatePreview(answers)}
-          />
+          blueprintLoading ? (
+            <BlueprintLoader businessName={businessName} />
+          ) : (
+            <PreviewReport
+              previewData={previewData}
+              businessName={businessName}
+              onDownload={downloadPdf}
+              onCheckout={handleCheckout}
+              pdfDownloading={pdfDownloading}
+              blueprintLoading={blueprintLoading}
+              driveLink={driveLink}
+              driveLoading={driveLoading}
+              error={error}
+              onRetry={() => generatePreview(answers)}
+            />
+          )
         )}
 
 

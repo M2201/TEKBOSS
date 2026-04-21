@@ -203,6 +203,7 @@ export default function App() {
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [activeHelpId, setActiveHelpId] = useState(null);
   const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
   // Implementation Assistant state
   const [assistantMessages, setAssistantMessages] = useState([]);
   const [assistantInput, setAssistantInput] = useState('');
@@ -832,17 +833,41 @@ export default function App() {
                 In minutes, see exactly what to automate, where time is being lost, and a clear path for how your business can operate over the next 90 days.
               </p>
 
-              {/* Video Button */}
-              <a
-                href="#video"
-                onClick={(e) => { e.preventDefault(); /* TODO: Replace with your video URL */ alert('Video coming soon! Replace this with your explainer video URL.'); }}
+              {/* Video Button + Modal */}
+              {videoModalOpen && (
+                <div
+                  className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
+                  onClick={() => setVideoModalOpen(false)}
+                >
+                  <div
+                    className="relative w-full max-w-3xl aspect-video rounded-2xl overflow-hidden shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <iframe
+                      src="https://app.heygen.com/embed/ea9f9e77dbc14e208a02880b345b6a8d"
+                      title="TekBoss AI Blueprint — Explainer Video"
+                      allow="autoplay; fullscreen"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                    />
+                    <button
+                      onClick={() => setVideoModalOpen(false)}
+                      className="absolute top-3 right-3 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={() => setVideoModalOpen(true)}
                 className="inline-flex items-center gap-4 bg-slate-900/80 border border-green-500/30 rounded-2xl px-8 py-5 mb-6 hover:border-green-400/50 hover:bg-slate-900 transition-all group cursor-pointer"
               >
                 <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
                   <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-green-400 ml-1" />
                 </div>
-                <span className="text-xs font-black uppercase tracking-[0.2em] text-white">Watch the 2.5 Min. Explainer Video</span>
-              </a>
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-white">Watch the Explainer Video</span>
+              </button>
 
               {/* Primary CTA */}
               <div>

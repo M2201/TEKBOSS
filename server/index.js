@@ -542,6 +542,67 @@ app.post('/api/blueprints', requireStrictAuth, (req, res) => {
             diyPlaybook ? assistantExpiresAt : null,
         );
 
+        // ─── Auto-upload PDF + Spec JSON to Drive (fire-and-forget) ───────────
+        // This guarantees every processed blueprint is saved to our Drive folder,
+        // even if the user never manually clicks the download button.
+        if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+            const parsedAnswers = typeof answers === 'string' ? JSON.parse(answers) : answers;
+            const rawBizName   = parsedAnswers?.[1] || 'Unknown';
+            const bizName      = rawBizName
+                .replace(/https?:\/\/[^\s,()[\]]+/gi, '')
+                .replace(/\bwww\.[^\s,()[\]]+/gi, '')
+                .replace(/\([^)]*\)/g, '')
+                .split(/[,—–\-|]/)[0]
+                .trim().replace(/\s+/g, ' ') || 'Unknown';
+
+            const safeName = bizName.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_');
+            const ts       = Date.now();
+
+            // Build preview report string (may already be serialised JSON or markdown)
+            const previewReportData = typeof previewReport === 'string'
+                ? (() => { try { return JSON.parse(previewReport); } catch { return previewReport; } })()
+                : previewReport;
+
+            setImmediate(async () => {
+                try {
+                    // Generate PDF
+                    const pdfBuffer = await generateBlueprintPdf({
+                        businessName: bizName,
+                        previewReport: previewReportData,
+                        diyPlaybook: diyPlaybook || '',
+                        brandDna:    null,
+                        marketIntel: null,
+                        roiData:     null,
+                        namedSystems: [],
+                        generatedAt:  new Date().toISOString(),
+                    });
+                    const pdfFileName = `TekBoss_Blueprint_${safeName}_${ts}.pdf`;
+                    const pdfResult   = await uploadBlueprintToDrive(pdfBuffer, pdfFileName);
+                    console.log('☁️  Auto-upload PDF to Drive:', pdfResult.webViewLink);
+
+                    // Store drive link on the record
+                    try {
+                        db.prepare('UPDATE blueprints SET drive_link = ? WHERE id = ?')
+                          .run(pdfResult.webViewLink, id);
+                    } catch (_) { /* non-fatal */ }
+
+                    // Also upload Spec JSON if we have validatedData
+                    if (validatedData) {
+                        const vd = typeof validatedData === 'string'
+                            ? JSON.parse(validatedData) : validatedData;
+                        const spec       = buildSpecJson(vd, bizName);
+                        const specBuffer = Buffer.from(JSON.stringify(spec, null, 2), 'utf-8');
+                        const specFile   = `TekBoss_AIBuildSpec_${safeName}_${ts}.json`;
+                        const specResult = await uploadBlueprintToDrive(specBuffer, specFile, 'application/json');
+                        console.log('☁️  Auto-upload Spec JSON to Drive:', specResult.webViewLink);
+                    }
+                } catch (driveErr) {
+                    console.error('⚠️  Auto Drive upload failed (non-fatal):', driveErr.message);
+                }
+            });
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         res.json({
             message: 'Blueprint saved securely to your account.',
             blueprintId: id,

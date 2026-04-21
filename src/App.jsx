@@ -402,8 +402,19 @@ export default function App() {
 
   const questions = STATIC_QUESTIONS;
   const currentQuestion = questions[currentQIndex] || null;
-  // Use the full business name from Q1 — never truncate to first word
-  const businessName = answers[1] ? answers[1].split(/[,—–]/)[0].trim() : null;
+  // Use the full business name from Q1 — strip URLs, domains, and trailing noise
+  const cleanBusinessName = (raw) => {
+    if (!raw) return null;
+    return raw
+      .replace(/https?:\/\/[^\s,()[\]]+/gi, '')   // strip http(s) URLs
+      .replace(/\bwww\.[^\s,()[\]]+/gi, '')         // strip www. domains
+      .replace(/\([^)]*\)/g, '')                    // strip parenthetical content
+      .split(/[,—–\-|]/)[0]                         // take first part before separator
+      .trim()
+      .replace(/\s+/g, ' ')                         // normalise whitespace
+      || null;
+  };
+  const businessName = cleanBusinessName(answers[1]);
   const industry = answers[2] || null;
 
   // Auto-scroll

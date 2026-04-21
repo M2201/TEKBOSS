@@ -99,6 +99,7 @@ CRITICAL RULES:
 - Flag genuinely vague answers with [NEEDS CLARIFICATION] rather than guessing.
 - Preserve the owner's voice and terminology.
 - Do not use jargon, hype language, or motivational fluff.
+- SILENTLY CORRECT all obvious spelling errors, autocorrect mistakes, and grammatical typos in the user's raw answers. Do not note the corrections — simply produce clean, professional text that preserves the owner's exact meaning and intent.
 
 ${LANGUAGE_FRAME}
 

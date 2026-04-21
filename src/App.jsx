@@ -305,13 +305,20 @@ export default function App() {
     if (SpeechRecognition) setVoiceSupported(true);
   }, []);
 
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch { /* ignore */ }
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+  };
+
   const toggleListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
     if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
+      stopListening();
       return;
     }
 
@@ -320,19 +327,23 @@ export default function App() {
     recognition.interimResults = true;   // Stream text in real-time as you speak
     recognition.lang = 'en-US';
 
-    let finalTranscript = '';            // Accumulated confirmed words
+    let finalTranscript = '';            // Accumulated confirmed words — reset fresh each session
+
+    // Clear any residual text so the new session starts blank
+    setInputValue('');
 
     recognition.onstart = () => setIsListening(true);
 
     recognition.onend = () => {
       setIsListening(false);
+      recognitionRef.current = null;
       // Keep whatever was typed — don't clear it
     };
 
     recognition.onerror = (event) => {
       // 'no-speech' is normal (user paused) — don't stop for it
       if (event.error !== 'no-speech') {
-        setIsListening(false);
+        stopListening();
       }
     };
 
@@ -353,7 +364,6 @@ export default function App() {
     };
 
     recognitionRef.current = recognition;
-    finalTranscript = '';  // Reset on each new start
     recognition.start();
   };
   // ──────────────────────────────────────────────────
@@ -522,6 +532,9 @@ export default function App() {
     const trimmed = inputValue.trim();
     if (!trimmed || !currentQuestion) return;
 
+    // Stop mic immediately — prevents old transcript bleeding into next question
+    stopListening();
+
     setMessages(prev => [...prev, { role: 'user', text: trimmed }]);
     setInputValue('');
     setIsTyping(true);
@@ -565,6 +578,7 @@ export default function App() {
 
   const handleMultiSelectSubmit = async () => {
     if (!currentQuestion || multiSelectedOptions.length === 0) return;
+    stopListening(); // safety — stop any open mic session
     const selectedLabels = currentQuestion.options
       .filter(o => multiSelectedOptions.includes(o.value))
       .map(o => o.label)

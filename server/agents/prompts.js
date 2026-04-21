@@ -267,21 +267,14 @@ OUTPUT FORMAT — Use these exact sections:
 ## 6. Opportunity Overview
 [High-level overview of the named systems their business needs. Mention system NAMES but do NOT explain components or how they work. Create curiosity about what's inside each system.]
 
-## 7. What This Does NOT Show You
-[Explicitly list what the preview intentionally withholds. This creates productive tension:]
-- How each system is built and connected
-- The specific tools and platforms selected for your business
-- Your custom automation workflows
-- Your personalized prompt templates
-- Your 90-day implementation roadmap
-- Your brand governance framework
-- Access to the Implementation Assistant
+## 7. Your Highest-Leverage Move Right Now
+[Based on everything in the intake, identify the single highest-ROI action this business could take in the next 30 days. Be specific — name the activity, explain why it matters more than anything else right now, and frame the impact in terms of time recovered or revenue unlocked. Do NOT explain how to execute it. Just make it undeniably clear that this is the move.]
 
 ## 8. The Execution Gap
 [Frame the distinction between KNOWING what to do and having a SYSTEM to do it. Reference ChatGPT, Claude, and Gemini specifically — acknowledge they're powerful, but explain why fragmented AI outputs don't equal a business operating system. End with: "The gap is not effort — it's system design."]
 
 ## 9. What Happens Next
-[Brief explanation of what the full blueprint includes and how the Implementation Assistant works. End with a clear CTA line.]`;
+[Brief explanation of what the full blueprint delivers. One paragraph. End with a single, direct CTA line — no bullet lists, no hype.]`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STAGE 5 — ORCHESTRATION PLAYBOOK (PAID — Full Execution System)

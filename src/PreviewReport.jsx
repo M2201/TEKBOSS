@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   CheckCircle, ArrowRight, Download, Copy, ExternalLink,
-  Lock, Zap, TrendingUp, BarChart3, RefreshCw, Star
+  Lock, Zap, TrendingUp, BarChart3, RefreshCw, Star, ShieldOff
 } from 'lucide-react';
 
 // ─── Tier config ─────────────────────────────────────────────────────────────
@@ -169,6 +169,29 @@ function NamedSystemsTeaser({ systems, brandAccent }) {
             <div className="mt-3 pl-3 select-none pointer-events-none">
               <div className="h-2 rounded bg-slate-800/60 w-4/5 mb-1.5" />
               <div className="h-2 rounded bg-slate-800/40 w-3/5" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NoAiZones({ items }) {
+  if (!items?.length) return null;
+  return (
+    <div className="mb-8">
+      <div className="flex items-center gap-2 mb-4">
+        <ShieldOff size={13} className="text-rose-500" />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-rose-500">Where Human Judgment Is Non-Negotiable</p>
+      </div>
+      <div className="space-y-3">
+        {items.map((item, i) => (
+          <div key={i} className="relative bg-slate-900/80 border border-rose-500/20 rounded-2xl px-5 py-4 overflow-hidden">
+            <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-rose-500/60 rounded-l-2xl" />
+            <div className="pl-3">
+              <p className="text-white text-sm font-black tracking-tight mb-1">{item.area}</p>
+              <p className="text-slate-400 text-xs leading-relaxed">{item.reason}</p>
             </div>
           </div>
         ))}
@@ -375,6 +398,9 @@ export default function PreviewReport({
 
         {/* Highest Leverage Move */}
         {pr?.highest_leverage_move && <HighestLeverageCard text={pr.highest_leverage_move} brandAccent={brandSecondary} />}
+
+        {/* No-AI Zones — strategic restraint */}
+        {pr?.no_ai_zones?.length > 0 && <NoAiZones items={pr.no_ai_zones} />}
 
         {/* Execution Gap */}
         <ExecutionGapCard text={pr?.execution_gap} />

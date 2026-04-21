@@ -567,6 +567,25 @@ export function generateBlueprintPdf(pdfData) {
           doc.moveDown(1);
         }
 
+        // No-AI Zones
+        if (pr.no_ai_zones?.length) {
+          ensureSpace(doc, 30);
+          doc.font('Helvetica-Bold').fontSize(8).fillColor('#F87171')
+            .text('WHERE HUMAN JUDGMENT IS NON-NEGOTIABLE', L_MARGIN, doc.y, { width: CONTENT_W });
+          doc.moveDown(0.3);
+          pr.no_ai_zones.forEach(item => {
+            ensureSpace(doc, 35);
+            // Red left accent
+            doc.rect(L_MARGIN, doc.y, 3, 28).fill('#F87171');
+            doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.white)
+              .text(item.area || '', L_MARGIN + 10, doc.y, { width: CONTENT_W - 10 });
+            doc.font('Helvetica-Oblique').fontSize(8).fillColor(COLORS.slateMid)
+              .text(item.reason || '', L_MARGIN + 10, doc.y, { width: CONTENT_W - 10, lineGap: 2 });
+            doc.moveDown(0.8);
+          });
+          doc.moveDown(0.3);
+        }
+
       } else {
         // ── Fallback: plain text rendering (pre-JSON format) ──────────────
         const rawStr = typeof pdfData.previewReport === 'string' ? pdfData.previewReport : JSON.stringify(pdfData.previewReport);

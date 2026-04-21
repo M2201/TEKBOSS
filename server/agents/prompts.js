@@ -260,6 +260,11 @@ OUTPUT FORMAT: Strict JSON only. No markdown wrapper. No commentary outside the 
     { "name": "Named System Name 3", "hook": "Same format." }
   ],
   "highest_leverage_move": "One specific named action for the next 30 days. State the activity and frame the impact in time recovered or revenue unlocked. Do not explain how to execute it.",
+  "no_ai_zones": [
+    { "area": "Area of their business where AI should NOT be used", "reason": "One sentence — why human judgment, relationship, or nuance is irreplaceable here. Frame as protecting their competitive edge, not as a limitation." },
+    { "area": "Second area", "reason": "Same format." },
+    { "area": "Third area", "reason": "Same format." }
+  ],
   "execution_gap": "One punchy paragraph. Specific to their situation. Reference ChatGPT, Claude, and Gemini by name — acknowledge they're powerful, explain why fragmented outputs don't equal a business operating system. End with exactly: The gap is not effort — it's system design.",
   "cta_line": "One direct sentence. No exclamation point. No hype."
 }
@@ -270,6 +275,12 @@ SCORING RULES — health_assessment scores (0–100, representing percentage of 
 - "red" tier: score 0–44. Label = high-priority unlock. Use sparingly — max 1 red score.
 - NEVER give all 4 scores green. Honest assessment creates urgency and trust simultaneously.
 - Foundation rarely exceeds 85 unless the business has a clearly systematized, multi-year track record.
+
+NO AI ZONES RULES:
+- Identify 2-3 specific areas of THIS business (not generic advice) where AI automation would erode trust, quality, or competitive differentiation
+- Common candidates: high-stakes client relationship moments, creative/taste decisions that define their brand, emotionally sensitive conversations, niche expert judgment that clients specifically pay for
+- Frame each as protecting their strength: "Your clients pay for YOUR judgment here — AI would commoditize what makes you premium"
+- NEVER use: "AI can't do this", "AI is not ready", "limitations" — frame as STRATEGIC RESTRAINT, not inability
 
 CRITICAL RULES:
 - stat.value must be derived from the actual time drains the owner named — use real estimates

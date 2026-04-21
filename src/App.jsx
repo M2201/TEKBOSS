@@ -7,7 +7,7 @@ import {
   ShieldCheck, Send, CheckCircle, AlertTriangle, Sparkles,
   ArrowRight, RefreshCw, HelpCircle, X, Zap, Target,
   TrendingUp, Layers, Bot, ExternalLink, Clock, Star,
-  User, LogOut, Eye, EyeOff, ShieldAlert,
+  User, LogOut, Eye, EyeOff, ShieldAlert, Pencil,
 } from 'lucide-react';
 
 // ─── Static questions — always available, no API needed ───────────────────────
@@ -293,7 +293,9 @@ export default function App() {
   const assistantBottomRef = useRef(null);
   const assistantInputRef = useRef(null);
   const recognitionRef = useRef(null);
-  const finalTranscriptRef = useRef(''); // reset per-question, no need to stop recognition
+  const finalTranscriptRef = useRef('');     // reset per-question, no need to stop recognition
+  const resultBoundaryRef = useRef(0);       // cumulative results index — ignore anything before this
+  const lastResultsLengthRef = useRef(0);    // tracks latest event.results.length for boundary updates
   const landingScrollRef = useRef(null);
 
   // ─── Voice input state ───────────────────────────────────────────────
@@ -347,8 +349,13 @@ export default function App() {
 
     recognition.onresult = (event) => {
       let interimTranscript = '';
+      lastResultsLengthRef.current = event.results.length;
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      // Start from whichever is newer: the event's first new result, or our question boundary
+      // This ensures pending final results from the PREVIOUS answer are silently skipped
+      const startIdx = Math.max(event.resultIndex, resultBoundaryRef.current);
+
+      for (let i = startIdx; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
           finalTranscriptRef.current += result[0].transcript + ' ';
@@ -529,8 +536,9 @@ export default function App() {
     const trimmed = inputValue.trim();
     if (!trimmed || !currentQuestion) return;
 
-    // Reset transcript ref so the next question starts clean — mic stays open
+    // Reset transcript state for the next question — mic stays open
     finalTranscriptRef.current = '';
+    resultBoundaryRef.current = lastResultsLengthRef.current; // ignore anything before now
 
     setMessages(prev => [...prev, { role: 'user', text: trimmed }]);
     setInputValue('');
@@ -608,6 +616,34 @@ export default function App() {
       }]);
       setTimeout(() => inputRef.current?.focus(), 100);
     }, 700);
+  };
+
+  // ─── Edit Last Answer ─────────────────────────────────────────────────────
+  const editLastAnswer = () => {
+    if (isTyping || waitingForFollowUp) return;
+
+    // Find the last user message
+    let lastUserMsgIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') { lastUserMsgIdx = i; break; }
+    }
+    if (lastUserMsgIdx === -1 || currentQIndex === 0) return;
+
+    const lastAnswer = messages[lastUserMsgIdx].text;
+    const prevQIndex = currentQIndex - 1;
+    const questionId = questions[prevQIndex]?.id;
+
+    // Remove user message + everything after it (agent follow-up / next question)
+    setMessages(prev => prev.slice(0, lastUserMsgIdx));
+    setCurrentQIndex(prevQIndex);
+    if (questionId) setAnswers(prev => { const a = { ...prev }; delete a[questionId]; return a; });
+    // Don't restore 'Selected: ...' multiselect answers as text
+    setInputValue(lastAnswer.startsWith('Selected:') ? '' : lastAnswer);
+    setWaitingForFollowUp(false);
+    // Reset transcript boundary so mic starts fresh for re-answer
+    finalTranscriptRef.current = '';
+    resultBoundaryRef.current = lastResultsLengthRef.current;
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
   // ─── Generate Preview Report (FREE) ─────────────────────────────────────────
@@ -1127,11 +1163,25 @@ export default function App() {
                       )}
                     </div>
                   )}
-                  {msg.role === 'user' && (
-                    <div className="max-w-xl bg-blue-600 text-white rounded-2xl rounded-tr-sm px-5 py-4 text-sm font-medium leading-relaxed shadow-lg">
-                      {msg.text}
-                    </div>
-                  )}
+                  {msg.role === 'user' && (() => {
+                    // Only last user message gets the edit button
+                    const isLastUser = !messages.slice(i + 1).some(m => m.role === 'user');
+                    return (
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="max-w-xl bg-blue-600 text-white rounded-2xl rounded-tr-sm px-5 py-4 text-sm font-medium leading-relaxed shadow-lg">
+                          {msg.text}
+                        </div>
+                        {isLastUser && !isTyping && (
+                          <button
+                            onClick={editLastAnswer}
+                            className="flex items-center gap-1 text-[9px] text-slate-600 hover:text-blue-400 font-bold uppercase tracking-[0.2em] transition-colors"
+                          >
+                            <Pencil size={9} /> Edit answer
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
 

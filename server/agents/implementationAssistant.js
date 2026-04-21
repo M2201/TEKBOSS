@@ -1,17 +1,24 @@
 /**
  * IMPLEMENTATION ASSISTANT
- * Blueprint-grounded AI support system that guides execution.
- * Maintains conversation context and references the user's saved blueprint.
+ * Blueprint-grounded AI coaching system with dynamic knowledge injection.
+ * Tool and pattern knowledge is selected per user based on their blueprint context.
  */
 import { GoogleGenAI } from '@google/genai';
 import {
     IMPLEMENTATION_ASSISTANT_PROMPT,
     buildAssistantContext
 } from './prompts.js';
+import { buildCoachingKnowledgeBlock } from '../knowledge/selectKnowledge.js';
 
 export async function runImplementationAssistant(apiKey, blueprint, userMessage, conversationHistory = []) {
     const ai = new GoogleGenAI({ apiKey });
     const contextMessage = buildAssistantContext(blueprint, userMessage);
+
+    // Build dynamic knowledge block for this user's tools + systems
+    const knowledgeBlock = buildCoachingKnowledgeBlock(blueprint);
+
+    // System instruction = base coaching prompt + relevant knowledge
+    const systemInstruction = IMPLEMENTATION_ASSISTANT_PROMPT + knowledgeBlock;
 
     // Build conversation with history
     const contents = [];
@@ -36,7 +43,7 @@ export async function runImplementationAssistant(apiKey, blueprint, userMessage,
             model: 'gemini-2.5-flash',
             contents,
             config: {
-                systemInstruction: IMPLEMENTATION_ASSISTANT_PROMPT,
+                systemInstruction,
                 temperature: 0.4,
                 maxOutputTokens: 2048,
             },

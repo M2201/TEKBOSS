@@ -727,6 +727,24 @@ export default function App() {
     }
   };
 
+  // ─── Frustration / DFY Detection ──────────────────────────────────────────
+  const detectFrustration = (message, history = []) => {
+    const signals = [
+      "can't", "cant", "confused", "don't understand", "dont understand",
+      "too complex", "too complicated", "lost", "stuck", "overwhelmed",
+      "don't know how", "dont know how", "not working", "frustrated",
+      "struggling", "not sure", "don't get", "dont get", "too hard",
+      "difficult", "how do i even", "what do i do", "i give up",
+      "this is hard", "i need help", "can someone", "can you do it for me",
+      "do it for me", "build this for me", "make this for me",
+    ];
+    const lower = message.toLowerCase();
+    const hasSignal = signals.some(s => lower.includes(s));
+    // Also trigger if user has sent 5+ messages (sustained engagement = potential struggle)
+    const userMsgCount = history.filter(m => m.role === 'user').length;
+    return hasSignal || userMsgCount >= 5;
+  };
+
   // ─── Implementation Assistant ───────────────────────────────────────────────
 
   // Auto-fire opening coaching message when Stage 4 first loads
@@ -795,7 +813,13 @@ export default function App() {
         }),
       });
       const data = await res.json();
-      setAssistantMessages(prev => [...prev, { role: 'assistant', content: data.response, timestamp: new Date().toISOString() }]);
+      const isFrustrated = detectFrustration(trimmed, assistantMessages);
+      setAssistantMessages(prev => [...prev, {
+        role: 'assistant',
+        content: data.response,
+        timestamp: new Date().toISOString(),
+        suggestDfy: isFrustrated,
+      }]);
     } catch (err) {
       setAssistantMessages(prev => [...prev, { role: 'assistant', content: 'I was unable to process your request. Please try again.', timestamp: new Date().toISOString() }]);
     } finally {
@@ -1516,6 +1540,13 @@ export default function App() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
+                  {/* DFY Consultation — persistent offering */}
+                  <a
+                    href="mailto:hello@tekboss.ai?subject=Done-For-You Blueprint Build&body=I'm interested in having my AI systems built out for me."
+                    className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 hover:border-amber-400/50 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                  >
+                    <Zap size={11} /> Done For You
+                  </a>
                   {subscription.daysRemaining > 0 && (
                     <span className={`text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg border ${
                       subscription.isWarningPeriod
@@ -1599,14 +1630,33 @@ export default function App() {
               {assistantMessages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {msg.role === 'assistant' && (
-                    <div className="flex items-start gap-3 max-w-2xl">
-                      <div className="w-8 h-8 rounded-xl bg-blue-600/10 text-blue-400 border border-blue-500/20 flex items-center justify-center mt-1 flex-shrink-0">
-                        <Bot size={15} />
+                    <>
+                      <div className="flex items-start gap-3 max-w-2xl">
+                        <div className="w-8 h-8 rounded-xl bg-blue-600/10 text-blue-400 border border-blue-500/20 flex items-center justify-center mt-1 flex-shrink-0">
+                          <Bot size={15} />
+                        </div>
+                        <div className="bg-slate-900 border border-slate-800 rounded-2xl rounded-tl-sm px-5 py-4">
+                          <MarkdownContent content={msg.content} />
+                        </div>
                       </div>
-                      <div className="bg-slate-900 border border-slate-800 rounded-2xl rounded-tl-sm px-5 py-4">
-                        <MarkdownContent content={msg.content} />
-                      </div>
-                    </div>
+                      {msg.suggestDfy && (
+                        <div className="max-w-xl ml-11 mt-2 rounded-2xl border border-amber-500/30 bg-amber-950/20 px-5 py-4">
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400 mb-1 flex items-center gap-1.5">
+                            <Zap size={10} /> Want this built for you?
+                          </p>
+                          <p className="text-xs text-slate-400 leading-relaxed mb-3">
+                            Our implementation partners specialize in building these exact AI systems — done for you, in weeks, not months. Skip the DIY learning curve.
+                          </p>
+                          <a
+                            href={`mailto:hello@tekboss.ai?subject=Done-For-You Build Request — ${businessName || 'Blueprint'}&body=Hi, I'd like to skip the DIY route and have my AI systems built out. My business is ${businessName || '[Business Name]'}.`}
+                            className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-xl transition-all"
+                          >
+                            <Zap size={10} /> Schedule a Free Strategy Call
+                          </a>
+                          <p className="text-[9px] text-slate-600 mt-2">No obligation — get a build plan and timeline in one session.</p>
+                        </div>
+                      )}
+                    </>
                   )}
                   {msg.role === 'user' && (
                     <div className="max-w-xl bg-blue-600 text-white rounded-2xl rounded-tr-sm px-5 py-4 text-sm font-medium leading-relaxed shadow-lg">

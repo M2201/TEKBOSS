@@ -884,8 +884,13 @@ export default function App() {
                   }}
                   className="bg-white text-slate-950 font-black px-12 py-5 rounded-2xl hover:bg-slate-200 uppercase tracking-widest text-xs shadow-xl flex items-center justify-center gap-2 transition-all mx-auto"
                 >
-                  Start Your Free Analysis <ArrowRight size={16} />
+                  {user ? `Continue Session →` : <>Start Your Free Analysis <ArrowRight size={16} /></>}
                 </button>
+                {user && (
+                  <p className="text-slate-500 text-[11px] mt-3 text-center">
+                    Signed in as <span className="text-slate-300">{user.email}</span>
+                  </p>
+                )}
               </div>
 
               {/* Read More Toggle */}

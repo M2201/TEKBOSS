@@ -771,7 +771,11 @@ app.use((err, req, res, next) => {
 // START SERVER (skip when imported by Vercel)
 // ─────────────────────────────────────────────────────────────────────────────
 if (!process.env.VERCEL) {
-    const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
+    // Always bind 0.0.0.0 so Railway's healthcheck can reach the server.
+    // Binding to 127.0.0.1 (localhost-only) makes healthchecks fail in containers.
+    const HOST = process.env.NODE_ENV === 'development' && !process.env.RAILWAY_ENVIRONMENT
+        ? '127.0.0.1'
+        : '0.0.0.0';
     const server = app.listen(PORT, HOST, () => {
         console.log(`\n🧠 The TEK BOSS AI Blueprint — Server Online — port ${PORT}`);
         console.log(`   Gemini API Key: ${API_KEY ? '✅ loaded' : '❌ MISSING'}`);

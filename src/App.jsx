@@ -293,6 +293,7 @@ export default function App() {
   const assistantBottomRef = useRef(null);
   const assistantInputRef = useRef(null);
   const recognitionRef = useRef(null);
+  const landingScrollRef = useRef(null);
 
   // ─── Voice input state ───────────────────────────────────────────────
   const [isListening, setIsListening] = useState(false);
@@ -875,7 +876,7 @@ export default function App() {
 
       {/* ── Landing Page Hero ── */}
       {showDisclaimer && (
-        <div className="fixed inset-0 bg-slate-950 z-50 flex flex-col overflow-y-auto">
+        <div ref={landingScrollRef} className="fixed inset-0 bg-slate-950 z-50 flex flex-col overflow-y-auto">
           {/* Nav Bar */}
           <nav className="flex items-center justify-between px-6 md:px-12 py-4 flex-shrink-0">
             <div className="flex items-center gap-3">
@@ -988,7 +989,14 @@ export default function App() {
 
               {/* Read More Toggle */}
               <button
-                onClick={() => document.getElementById('learn-more')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => {
+                  const el = document.getElementById('learn-more');
+                  if (el && landingScrollRef.current) {
+                    landingScrollRef.current.scrollTo({ top: el.offsetTop, behavior: 'smooth' });
+                  } else {
+                    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }}
                 className="mt-8 text-slate-600 hover:text-slate-400 text-[10px] font-bold uppercase tracking-[0.25em] transition-colors flex items-center gap-2 mx-auto"
               >
                 Learn more below
@@ -1061,7 +1069,27 @@ export default function App() {
               {/* Progress within interview */}
               <div className="flex justify-between items-center mb-1.5 max-w-2xl mx-auto">
                 <span className="text-[9px] font-black text-blue-600/80 uppercase tracking-[0.3em]">Discovery Interview</span>
-                <span className="text-[9px] text-slate-500 font-bold">{currentQIndex + 1} / {questions.length}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[9px] text-slate-500 font-bold">{currentQIndex + 1} / {questions.length}</span>
+                  <button
+                    id="start-over-btn"
+                    onClick={() => {
+                      if (currentQIndex === 0 || window.confirm('Start over? Your progress will be cleared.')) {
+                        setMessages([{ role: 'agent', text: questions[0].text, phase: questions[0].phase, qNumber: 1, total: questions.length }]);
+                        setAnswers({});
+                        setCurrentQIndex(0);
+                        setMultiSelectedOptions([]);
+                        setInputValue('');
+                        setWaitingForFollowUp(false);
+                        setError(null);
+                        if (user) localStorage.removeItem(`tekboss_progress_${user.id}`);
+                      }
+                    }}
+                    className="text-[9px] text-slate-600 hover:text-rose-400 font-bold uppercase tracking-[0.2em] transition-colors"
+                  >
+                    ↺ Start Over
+                  </button>
+                </div>
               </div>
               <div className="h-[2px] w-full max-w-2xl mx-auto bg-slate-900 rounded-full overflow-hidden">
                 <div

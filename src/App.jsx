@@ -19,8 +19,8 @@ const STATIC_QUESTIONS = [
   { id: 4, phase: 'Context', text: 'Who is your ideal client? Describe them specifically — who they are, their situation, and what they need.', hint: 'Include industry, business size, situation, and their main pain point.', example: 'Coaches doing $10k–$30k/month who need more leads but have no time for content' },
   { id: 5, phase: 'Story', text: 'What made you start this business? Give me the real reason, not the elevator pitch version.', hint: 'Be honest — the real origin story gives us insight into your mission and values.', example: 'I spent 10 years in corporate watching small businesses get bad advice from expensive agencies and left to fix that.' },
   { id: 51, phase: 'Story', text: 'How long has this business been operating, and what is the most significant milestone you have hit so far?', hint: 'Give us the actual age of the business and one concrete achievement — a revenue milestone, a client count, a market win.', example: '3 years in business. Biggest milestone: crossed $250k in revenue last year and landed our first enterprise client.' },
-  { id: 6, phase: 'Story', text: "Give me three specific numbers for the next 12 months: (1) your target revenue or monthly income goal, (2) the team size you want to be running, and (3) the number of active clients or customers you want to be serving.", hint: 'All three numbers are required — revenue/income target, headcount, and active client or customer count.', example: 'Revenue: $600k/year. Team: 5 people (me + 4). Clients: 40 active retainer clients.' },
-  { id: 7, phase: 'Operations', text: "Name your top 3 biggest time drains this week — what the activity actually is (not just a category like 'admin') and roughly how many hours it takes each week.", hint: 'Be specific about what the task is, not just the category. Give a time estimate for each one.', example: '1. Manually building client reports from 5 different dashboards — 6 hrs/week. 2. Back-and-forth scheduling emails — 3 hrs/week. 3. Re-explaining our onboarding process to every new client — 4 hrs/week.' },
+  { id: 6, phase: 'Story', text: "Give me three specific numbers for the next 12 months: (1) your target revenue or monthly income goal, (2) the team size you want to be running, and (3) how many new clients or customers you want to bring on.", hint: 'All three numbers are required — revenue/income target, headcount, and new client or customer target.', example: 'Revenue: $600k/year. Team: 5 people (me + 4). New clients: 10 new retainer clients per month.' },
+  { id: 7, phase: 'Operations', text: "Name your top 3 biggest recurring time drains — what the activity actually is (not just a category like 'admin') and roughly how many hours each one takes per week on average.", hint: 'Be specific about what the task is, not just the category. Give a time estimate for each one.', example: '1. Manually building client reports from 5 different dashboards — 6 hrs/week. 2. Back-and-forth scheduling emails — 3 hrs/week. 3. Re-explaining our onboarding process to every new client — 4 hrs/week.' },
   { id: 9, phase: 'Operations', text: 'At what point in your sales process do you most often lose people? Where do things go quiet?', hint: 'Trace the path — intro call, proposal, follow-up, contract, onboarding?', example: 'After the proposal — people open it but ghost us if we wait more than 48 hours to follow up.' },
   { id: 10, phase: 'Operations', text: 'Where does your client and prospect data live right now? Spreadsheet, CRM, notes app — be specific.', hint: 'Name the exact tool, even if it\'s just a Google Sheet or a notes app.', example: 'HubSpot for active clients, but a Google Sheet backup because the team doesn\'t fully use HubSpot.' },
   { id: 11, phase: 'Operations', text: "What's the most time-consuming process in your business that you think a system could handle better than you're handling it now?", hint: 'Think about any repeated sequence — onboarding, reporting, follow-ups, publishing.', example: 'Client onboarding — we manually send 6 emails and update 4 spreadsheets per new client.' },
@@ -1395,10 +1395,17 @@ export default function App() {
                       ref={inputRef}
                       id="answer-input"
                       className="flex-1 bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600 resize-none font-medium leading-relaxed"
-                      placeholder={isListening ? 'Listening… (click here to edit manually)' : waitingForFollowUp ? 'Clarify your answer…' : 'Type or speak your response…'}
+                      placeholder={isListening ? 'Listening… tap mic or start typing to stop' : waitingForFollowUp ? 'Clarify your answer…' : 'Type or speak your response…'}
                       value={inputValue}
                       onChange={e => setInputValue(e.target.value)}
-                      onKeyDown={handleKeyDown}
+                      onKeyDown={e => {
+                        // Stop mic the moment the user starts typing — prevents transcript
+                        // from overwriting manual corrections
+                        if (isListening && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                          stopListening();
+                        }
+                        handleKeyDown(e);
+                      }}
                       onMouseDown={() => { if (isListening) stopListening(); }}
                       rows={2}
                     />

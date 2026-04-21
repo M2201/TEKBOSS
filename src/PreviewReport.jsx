@@ -151,28 +151,57 @@ function NamedSystemsTeaser({ systems, brandAccent }) {
   if (!systems?.length) return null;
   return (
     <div className="mb-8">
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4">Your AI-Powered Named Systems</p>
+
+      {/* ── Section header ── */}
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400">
+          Your Operating Systems — Engineered by AI
+        </p>
+      </div>
+      <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+        The AI has identified {systems.length} custom-built systems for your business.
+        Full architecture, tools, and playbooks unlock after you move forward.
+      </p>
+
+      {/* ── Locked system cards ── */}
       <div className="space-y-3">
         {systems.map((sys, i) => (
-          <div key={i} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 relative overflow-hidden">
-            <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: accent }} />
+          <div key={i} className="bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 relative overflow-hidden transition-colors group">
+            {/* Brand accent bar */}
+            <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl" style={{ background: accent }} />
+
             <div className="flex items-start justify-between gap-4 pl-3">
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-white font-black text-sm tracking-tight mb-1">{sys.name}</p>
                 <p className="text-slate-400 text-xs leading-relaxed">{sys.hook}</p>
               </div>
-              <div className="shrink-0 w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center">
-                <Lock size={13} className="text-slate-600" />
+
+              {/* Clearly visible lock badge */}
+              <div className="shrink-0 flex flex-col items-center gap-1">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center ring-1 ring-amber-500/10 group-hover:ring-amber-500/25 transition-all">
+                  <Lock size={14} className="text-amber-400" />
+                </div>
+                <span className="text-[8px] font-black uppercase tracking-widest text-amber-500/60">Locked</span>
               </div>
             </div>
-            {/* Ghost locked detail */}
-            <div className="mt-3 pl-3 select-none pointer-events-none">
-              <div className="h-2 rounded bg-slate-800/60 w-4/5 mb-1.5" />
-              <div className="h-2 rounded bg-slate-800/40 w-3/5" />
+
+            {/* Ghost content — blurred placeholder lines to hint at depth */}
+            <div className="mt-3 pl-3 space-y-1.5 select-none pointer-events-none">
+              <div className="h-2 rounded-full bg-slate-800/70 w-4/5" />
+              <div className="h-2 rounded-full bg-slate-800/40 w-3/5" />
             </div>
           </div>
         ))}
       </div>
+
+      {/* ── Unlock prompt ── */}
+      <div className="mt-4 flex items-center gap-3 bg-amber-500/5 border border-amber-500/20 rounded-xl px-4 py-3">
+        <Lock size={13} className="text-amber-400 shrink-0" />
+        <p className="text-xs text-amber-300/80 leading-relaxed">
+          <span className="font-bold text-amber-300">These systems are yours</span> — the tools, the automation logic, and the 90-day build order unlock the moment you move forward.
+        </p>
+      </div>
+
     </div>
   );
 }

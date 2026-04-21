@@ -293,22 +293,44 @@ export default function App() {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = true;
+    recognition.continuous = true;       // Keep listening through pauses
+    recognition.interimResults = true;   // Stream text in real-time as you speak
     recognition.lang = 'en-US';
 
+    let finalTranscript = '';            // Accumulated confirmed words
+
     recognition.onstart = () => setIsListening(true);
-    recognition.onend   = () => setIsListening(false);
-    recognition.onerror = () => setIsListening(false);
+
+    recognition.onend = () => {
+      setIsListening(false);
+      // Keep whatever was typed — don't clear it
+    };
+
+    recognition.onerror = (event) => {
+      // 'no-speech' is normal (user paused) — don't stop for it
+      if (event.error !== 'no-speech') {
+        setIsListening(false);
+      }
+    };
 
     recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map(r => r[0].transcript)
-        .join('');
-      setInputValue(transcript);
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript + ' ';
+        } else {
+          interimTranscript += result[0].transcript;
+        }
+      }
+
+      // Show final words + live preview of current phrase being spoken
+      setInputValue((finalTranscript + interimTranscript).trim());
     };
 
     recognitionRef.current = recognition;
+    finalTranscript = '';  // Reset on each new start
     recognition.start();
   };
   // ──────────────────────────────────────────────────

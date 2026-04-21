@@ -207,9 +207,17 @@ OUTPUT FORMAT (strict JSON only, no markdown wrapping):
     }
   ],
   "opportunityZones": ["zone1", "zone2"],
+  "targetChannels": ["channel1", "channel2"],
   "requiredCapabilities": ["capability1", "capability2"],
   "toolCategories": ["category1", "category2"],
+  "existingToolStack": ["ToolName1", "ToolName2"],
+  "systemOfRecord": "The single primary tool that owns the canonical client/customer data record (e.g. HubSpot, Salesforce, QuickBooks)",
   "humanControlPoints": ["checkpoint1", "checkpoint2"],
+  "phasedPriorities": [
+    { "phase": 1, "zone": "opportunity zone or named system to tackle first" },
+    { "phase": 2, "zone": "second priority" },
+    { "phase": 3, "zone": "third priority" }
+  ],
   "topRisks": ["risk1", "risk2"],
   "competitorInsights": ["insight1", "insight2"],
   "businessHealth": {
@@ -218,6 +226,7 @@ OUTPUT FORMAT (strict JSON only, no markdown wrapping):
     "growthReadiness": "string",
     "scalePotential": "string"
   },
+  "pricingTier": "TIER_1 | TIER_2 | TIER_3 | null — extract only if explicitly stated; otherwise null",
   "validationFlags": ["any items needing human clarification"]
 }`;
 

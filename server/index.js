@@ -232,6 +232,91 @@ app.post('/api/generate-blueprint', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SPEC JSON BUILDER — maps validatedData to canonical AI Build Spec format
+// ─────────────────────────────────────────────────────────────────────────────
+function buildSpecJson(validatedData = {}, businessName = '') {
+    const vd = validatedData;
+
+    // Derive phasedPriorities from namedSystems if guardrails didn't extract it
+    const phasedPriorities = vd.phasedPriorities?.length
+        ? vd.phasedPriorities
+        : (vd.namedSystems || []).map((sys, idx) => ({
+            phase: idx < Math.ceil((vd.namedSystems?.length || 3) / 3) ? 1
+                 : idx < Math.ceil(2 * (vd.namedSystems?.length || 3) / 3) ? 2
+                 : 3,
+            zone: sys.name,
+        }));
+
+    return {
+        _meta: {
+            generatedBy: 'TEK BOSS AI Blueprint Engine',
+            businessName: businessName || 'Unknown',
+            generatedAt: new Date().toISOString(),
+            specVersion: '1.0',
+            purpose: 'Machine-readable AI implementation spec for developer/partner use',
+        },
+        brandFoundation:      vd.brandFoundation      || {},
+        opportunityZones:     vd.opportunityZones     || [],
+        targetChannels:       vd.targetChannels       || [],
+        requiredCapabilities: vd.requiredCapabilities || [],
+        toolCategories:       vd.toolCategories       || [],
+        existingToolStack:    vd.existingToolStack     || [],
+        systemOfRecord:       vd.systemOfRecord       || null,
+        humanControlPoints:   vd.humanControlPoints   || [],
+        phasedPriorities,
+        namedSystems:         vd.namedSystems         || [],
+        topRisks:             vd.topRisks             || [],
+        competitorInsights:   vd.competitorInsights   || [],
+        businessHealth:       vd.businessHealth       || {},
+        pricingTier:          vd.pricingTier          || null,
+        validationFlags:      vd.validationFlags      || [],
+    };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DOWNLOAD SPEC JSON — generates AI Build Spec, uploads to Drive, streams file
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/download-spec', requireAuth, async (req, res) => {
+    const { businessName, validatedData } = req.body;
+
+    if (!validatedData) {
+        return res.status(400).json({ error: 'No validated data provided for spec generation.' });
+    }
+
+    try {
+        const spec = buildSpecJson(validatedData, businessName);
+        const specJson = JSON.stringify(spec, null, 2);
+        const specBuffer = Buffer.from(specJson, 'utf-8');
+
+        const safeName = (businessName || 'TekBoss').replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_');
+        const fileName = `TekBoss_AIBuildSpec_${safeName}_${Date.now()}.json`;
+
+        // Upload to Drive
+        let driveLink = null;
+        if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+            try {
+                const driveResult = await uploadBlueprintToDrive(specBuffer, fileName, 'application/json');
+                driveLink = driveResult.webViewLink;
+                console.log('☁️  Spec JSON Drive upload:', driveLink);
+            } catch (driveErr) {
+                console.error('⚠️  Spec Drive upload failed (file still delivered):', driveErr.message);
+            }
+        }
+
+        if (driveLink) res.setHeader('X-Drive-Link', driveLink);
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.setHeader('Content-Length', specBuffer.length);
+        console.log('✅ AI Build Spec ready:', fileName);
+        return res.send(specBuffer);
+
+    } catch (err) {
+        console.error('💥 Spec generation failed:', err);
+        return res.status(500).json({ error: 'Spec generation failed: ' + err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // DOWNLOAD PDF — generates PDF, uploads to Drive, returns link + streams file
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/download-pdf', requireAuth, async (req, res) => {

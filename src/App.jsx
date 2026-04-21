@@ -278,6 +278,34 @@ export default function App() {
       setPdfDownloading(false);
     }
   };
+
+  const [specDownloading, setSpecDownloading] = useState(false);
+  const downloadSpec = async () => {
+    setSpecDownloading(true);
+    try {
+      const vd = previewData?._internal?.validatedData;
+      if (!vd) { alert('Blueprint data not available yet.'); return; }
+      const res = await fetch('/api/download-spec', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ businessName, validatedData: vd }),
+      });
+      if (!res.ok) throw new Error('Spec generation failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cd = res.headers.get('Content-Disposition') || '';
+      const match = cd.match(/filename="(.+?)"/);
+      a.download = match ? match[1] : `TekBoss_AIBuildSpec_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Spec download error:', err);
+    } finally { setSpecDownloading(false); }
+  };
+
   const [authMode, setAuthMode] = useState('register'); // 'register' | 'login'
   const [authForm, setAuthForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
   const [authError, setAuthError] = useState(null);
@@ -1424,17 +1452,31 @@ export default function App() {
                       <span className="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-500 flex items-center justify-center border border-blue-500/20"><FileText size={16} /></span>
                       Your Implementation Blueprint
                     </h3>
-                    <button
-                      id="download-pdf-blueprint"
-                      onClick={() => downloadPdf(blueprint)}
-                      disabled={pdfDownloading}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-lg shadow-blue-900/30"
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                      </svg>
-                      {pdfDownloading ? 'Generating…' : 'Download PDF'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {/* Spec JSON for partners/developers */}
+                      <button
+                        id="download-spec-button"
+                        onClick={downloadSpec}
+                        disabled={specDownloading}
+                        title="Machine-readable build spec for developers and implementation partners"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        {specDownloading ? 'Building…' : 'AI Build Spec (.json)'}
+                      </button>
+                      {/* PDF blueprint */}
+                      <button
+                        id="download-pdf-blueprint"
+                        onClick={() => downloadPdf(blueprint)}
+                        disabled={pdfDownloading}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-lg shadow-blue-900/30"
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        {pdfDownloading ? 'Generating…' : 'Download PDF'}
+                      </button>
+                    </div>
                   </div>
                   <div className="bg-slate-900/60 border border-slate-800 rounded-[2rem] p-10 shadow-xl">
                     <MarkdownContent content={blueprint.diyPlaybook} />

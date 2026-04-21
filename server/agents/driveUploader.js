@@ -29,23 +29,22 @@ function getAuthClient() {
  * uploadBlueprintToDrive(pdfBuffer, fileName)
  * → { fileId, webViewLink, webContentLink }
  */
-export async function uploadBlueprintToDrive(pdfBuffer, fileName) {
+export async function uploadBlueprintToDrive(fileBuffer, fileName, mimeType = 'application/pdf') {
   const auth = getAuthClient();
   const drive = google.drive({ version: 'v3', auth });
 
-  // Convert Buffer to readable stream
   const stream = new Readable();
-  stream.push(pdfBuffer);
+  stream.push(fileBuffer);
   stream.push(null);
 
   const response = await drive.files.create({
     requestBody: {
       name: fileName,
-      mimeType: 'application/pdf',
+      mimeType,
       parents: [DRIVE_FOLDER_ID],
     },
     media: {
-      mimeType: 'application/pdf',
+      mimeType,
       body: stream,
     },
     fields: 'id, webViewLink, webContentLink, name',
@@ -53,27 +52,18 @@ export async function uploadBlueprintToDrive(pdfBuffer, fileName) {
 
   const fileId = response.data.id;
 
-  // Make it accessible to anyone with the link
   await drive.permissions.create({
     fileId,
-    requestBody: {
-      role: 'reader',
-      type: 'anyone',
-    },
+    requestBody: { role: 'reader', type: 'anyone' },
   });
 
-  // Fetch the updated sharing link
-  const meta = await drive.files.get({
-    fileId,
-    fields: 'id, webViewLink, name',
-  });
-
-  console.log(`✅ Blueprint uploaded to Drive: ${meta.data.name} (${fileId})`);
+  const meta = await drive.files.get({ fileId, fields: 'id, webViewLink, name' });
+  console.log(`✅ Uploaded to Drive: ${meta.data.name} (${fileId})`);
 
   return {
     fileId,
-    webViewLink:     meta.data.webViewLink,
-    webContentLink:  `https://drive.google.com/uc?export=download&id=${fileId}`,
-    name:            meta.data.name,
+    webViewLink:    meta.data.webViewLink,
+    webContentLink: `https://drive.google.com/uc?export=download&id=${fileId}`,
+    name:           meta.data.name,
   };
 }

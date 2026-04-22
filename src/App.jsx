@@ -137,7 +137,8 @@ const LockedSection = ({ icon: Icon, title, description }) => (
 );
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-const Sidebar = ({ stage }) => {
+const Sidebar = ({ stage, onStartFresh }) => {
+  const [confirmReset, setConfirmReset] = React.useState(false);
   const navItems = [
     { id: 1, label: 'Discovery Interview', icon: MessageSquare },
     { id: 2, label: 'Processing', icon: Cpu },
@@ -170,6 +171,44 @@ const Sidebar = ({ stage }) => {
           </div>
         ))}
       </nav>
+
+      {/* ── Start Fresh — visible before paywall ── */}
+      {onStartFresh && (
+        <div className="mt-auto pt-4 border-t border-slate-800/40">
+          {confirmReset ? (
+            <div className="bg-rose-950/30 border border-rose-800/30 rounded-xl p-3 space-y-2">
+              <p className="text-[10px] text-rose-300 font-bold leading-snug">
+                Clear all answers and start over from Question 1?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setConfirmReset(false); onStartFresh(); }}
+                  className="flex-1 text-[10px] bg-rose-600 hover:bg-rose-500 text-white font-black uppercase tracking-widest py-1.5 rounded-lg transition-colors"
+                >
+                  Yes, reset
+                </button>
+                <button
+                  onClick={() => setConfirmReset(false)}
+                  className="flex-1 text-[10px] text-slate-500 hover:text-slate-300 font-bold uppercase tracking-widest py-1.5 rounded-lg border border-slate-800 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              id="sidebar-start-fresh-btn"
+              onClick={() => setConfirmReset(true)}
+              className="w-full flex items-center gap-2 p-3 rounded-xl text-slate-600 hover:text-rose-400 hover:bg-rose-950/20 transition-all group"
+            >
+              <span className="text-base leading-none">&#8635;</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] group-hover:text-rose-400 transition-colors">
+                Start Fresh
+              </span>
+            </button>
+          )}
+        </div>
+      )}
 
     </div>
   );
@@ -1202,7 +1241,21 @@ export default function App() {
         </div>
       )}
 
-      <Sidebar stage={stage} />
+      <Sidebar
+        stage={stage}
+        onStartFresh={stage < 4 ? () => {
+          setMessages([{ role: 'agent', text: questions[0].text, phase: questions[0].phase, qNumber: 1, total: questions.length }]);
+          setAnswers({});
+          setCurrentQIndex(0);
+          setMultiSelectedOptions([]);
+          setInputValue('');
+          setWaitingForFollowUp(false);
+          setPreviewData(null);
+          setError(null);
+          setStage(1);
+          if (user) localStorage.removeItem(`tekboss_progress_${user.id}`);
+        } : null}
+      />
 
       <main className="flex-1 relative z-10 overflow-hidden flex flex-col">
 
@@ -1249,7 +1302,7 @@ export default function App() {
                   <button
                     id="start-over-btn"
                     onClick={() => {
-                      if (currentQIndex === 0 || window.confirm('Start over? Your progress will be cleared.')) {
+                      if (currentQIndex === 0 || window.confirm('Start over? This will clear all your answers and take you back to Question 1.')) {
                         setMessages([{ role: 'agent', text: questions[0].text, phase: questions[0].phase, qNumber: 1, total: questions.length }]);
                         setAnswers({});
                         setCurrentQIndex(0);
@@ -1260,9 +1313,9 @@ export default function App() {
                         if (user) localStorage.removeItem(`tekboss_progress_${user.id}`);
                       }
                     }}
-                    className="text-[9px] text-slate-600 hover:text-rose-400 font-bold uppercase tracking-[0.2em] transition-colors"
+                    className="text-[10px] text-slate-400 hover:text-rose-400 font-bold uppercase tracking-[0.2em] transition-colors flex items-center gap-1"
                   >
-                    ↺ Start Over
+                    <span style={{ fontSize: '11px' }}>&#8635;</span> Start Over
                   </button>
                 </div>
               </div>

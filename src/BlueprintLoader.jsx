@@ -80,7 +80,7 @@ const QUOTES = [
 const STAGE_LABELS = [
   "Analyzing Your Business DNA",
   "Mapping AI Opportunity Zones",
-  "Designing Your Core Intelligence",      // was: "Designing Your Named Systems"
+  "Designing Your Core Intelligence",
   "Calibrating Brand Intelligence",
   "Engineering Automation Workflows",
   "Drafting Your 90-Day Roadmap",
@@ -101,37 +101,68 @@ function buildSequence() {
 const SEQUENCE = buildSequence();
 const TOTAL_STAGES = STAGE_LABELS.length;
 
-// ─── Building layout ──────────────────────────────────────────────────────────
-const BUILDINGS = [
-  { x: 0,   w: 30,  h: 55  },
-  { x: 38,  w: 20,  h: 85  },
-  { x: 66,  w: 45,  h: 105 },
-  { x: 119, w: 18,  h: 45  },
-  { x: 145, w: 52,  h: 128 },
-  { x: 205, w: 28,  h: 78  },
-  { x: 241, w: 38,  h: 148 }, // central tower
-  { x: 287, w: 24,  h: 92  },
-  { x: 319, w: 48,  h: 112 },
-  { x: 375, w: 28,  h: 65  },
-  { x: 411, w: 50,  h: 88  },
-  { x: 469, w: 22,  h: 72  },
-  { x: 499, w: 38,  h: 58  },
-  { x: 545, w: 25,  h: 42  },
+// ─── Original city profile — identical to IntelligenceEngineLoader ────────────
+const CITY_COLUMNS = [
+  {w: 10, h: 0}, {w: 30, h: 40}, {w: 20, h: 80}, {w: 30, h: 40}, {w: 15, h: 0},
+  {w: 20, h: 70}, {w: 5, h: 120}, {w: 20, h: 70}, {w: 15, h: 0},
+  {w: 60, h: 30}, {w: 15, h: 0},
+  {w: 25, h: 90}, {w: 30, h: 110}, {w: 25, h: 90}, {w: 15, h: 0},
+  {w: 30, h: 60}, {w: 15, h: 80}, {w: 30, h: 60}, {w: 15, h: 0},
+  {w: 40, h: 40}, {w: 15, h: 0},
+  {w: 20, h: 90}, {w: 5, h: 140}, {w: 20, h: 90}, {w: 15, h: 0},
+  {w: 30, h: 65}, {w: 15, h: 0},
+  {w: 15, h: 50}, {w: 20, h: 80}, {w: 15, h: 50}, {w: 15, h: 0},
+  {w: 35, h: 100}, {w: 10, h: 120}, {w: 35, h: 100}, {w: 15, h: 0},
+  {w: 40, h: 55}, {w: 15, h: 0},
+  {w: 25, h: 70}, {w: 25, h: 100}, {w: 25, h: 70}, {w: 15, h: 0},
+  {w: 30, h: 30}, {w: 20, h: 0},
 ];
-const SVG_W  = 575;
-const GROUND = 155;
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function BlueprintLoader({ businessName = 'Your Business' }) {
-  const [seqIndex, setSeqIndex]       = useState(0);
-  const [visible, setVisible]         = useState(true);
-  const [scanX, setScanX]             = useState(0);
-  const [stagesDone, setStagesDone]   = useState(0);
+  const [seqIndex, setSeqIndex]     = useState(0);
+  const [visible, setVisible]       = useState(true);
+  const [scanX, setScanX]           = useState(0);
+  const [stagesDone, setStagesDone] = useState(0);
 
-  const item      = SEQUENCE[seqIndex % SEQUENCE.length];
-  const progress  = Math.min((stagesDone / TOTAL_STAGES) * 100, 98);
+  const item     = SEQUENCE[seqIndex % SEQUENCE.length];
+  const progress = Math.min((stagesDone / TOTAL_STAGES) * 100, 98);
 
-  // Advance through sequence with fade transitions
+  // ── Compute the original skyline path + windows (same algorithm as IntelligenceEngineLoader)
+  const { pathD, totalLength, totalWidth, windows } = useMemo(() => {
+    let d    = 'M 0 150 ';
+    let curX = 0;
+    let curY = 150;
+    let length = 0;
+    const windowsArr = [];
+
+    CITY_COLUMNS.forEach(col => {
+      const targetY = 150 - col.h;
+      if (targetY !== curY) {
+        d += `L ${curX} ${targetY} `;
+        length += Math.abs(curY - targetY);
+        curY = targetY;
+      }
+      if (col.h > 15 && col.w > 15) {
+        const numWindows = Math.floor((col.w * col.h) / 300);
+        for (let i = 0; i < numWindows; i++) {
+          const wx = curX + 3 + Math.random() * (col.w - 6);
+          const wy = 150 - (3 + Math.random() * (col.h - 6));
+          windowsArr.push({ id: Math.random(), x: wx, y: wy, delay: `${(Math.random() * 5).toFixed(2)}s`, dur: `${(1.8 + Math.random() * 3).toFixed(2)}s` });
+        }
+      }
+      curX += col.w;
+      length += col.w;
+      d += `L ${curX} ${curY} `;
+    });
+
+    d += `L ${curX} 150 Z`;
+    length += Math.abs(150 - curY) + curX;
+
+    return { pathD: d, totalLength: length, totalWidth: curX, windows: windowsArr };
+  }, []);
+
+  // ── Advance through sequence with fade transitions
   useEffect(() => {
     const FADE = 550;
     const t1 = setTimeout(() => setVisible(false), item.duration - FADE);
@@ -143,42 +174,19 @@ export default function BlueprintLoader({ businessName = 'Your Business' }) {
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [seqIndex, item.duration, item.type]);
 
-  // Continuous scanning beam (rAF-driven)
+  // ── Continuous scanning beam (rAF-driven)
   useEffect(() => {
     let start = null;
     let raf;
     const PERIOD = 5500;
     const step = (ts) => {
       if (!start) start = ts;
-      setScanX(((ts - start) % PERIOD) / PERIOD * SVG_W);
+      setScanX(((ts - start) % PERIOD) / PERIOD * totalWidth);
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, []);
-
-  // Window dots — generated once on mount
-  const windows = useMemo(() => {
-    const arr = [];
-    BUILDINGS.forEach(b => {
-      const cols = Math.max(1, Math.floor((b.w - 8) / 10));
-      const rows = Math.max(1, Math.floor((b.h - 8) / 18));
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          if (Math.random() > 0.28) {
-            arr.push({
-              id:    `${b.x}-${r}-${c}`,
-              x:     b.x + 5 + c * 10,
-              y:     GROUND - b.h + 7 + r * 18,
-              delay: `${(Math.random() * 5).toFixed(2)}s`,
-              dur:   `${(1.8 + Math.random() * 3.5).toFixed(2)}s`,
-            });
-          }
-        }
-      }
-    });
-    return arr;
-  }, []);
+  }, [totalWidth]);
 
   return (
     <div style={{
@@ -226,53 +234,56 @@ export default function BlueprintLoader({ businessName = 'Your Business' }) {
         </h2>
       </div>
 
-      {/* ── City SVG ── */}
-      <div style={{ width: '100%', maxWidth: '660px', zIndex: 10, marginBottom: '0.5rem' }}>
-        <svg viewBox={`0 -10 ${SVG_W} 165`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+      {/* ── Original city SVG (same as IntelligenceEngineLoader) ── */}
+      <div style={{ width: '100%', maxWidth: '800px', zIndex: 10, marginBottom: '0.5rem' }}>
+        <svg viewBox={`0 -20 ${totalWidth} 180`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
           <defs>
-            <linearGradient id="bpBldGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"   stopColor="rgba(30,58,138,0.85)" />
-              <stop offset="100%" stopColor="rgba(7,15,36,0.98)" />
-            </linearGradient>
-            <linearGradient id="bpScanGrad" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="blScanGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%"   stopColor="rgba(96,165,250,0)" />
-              <stop offset="35%"  stopColor="rgba(96,165,250,0.5)" />
-              <stop offset="65%"  stopColor="rgba(96,165,250,0.5)" />
+              <stop offset="40%"  stopColor="rgba(96,165,250,0.6)" />
+              <stop offset="60%"  stopColor="rgba(96,165,250,0.6)" />
               <stop offset="100%" stopColor="rgba(96,165,250,0)" />
             </linearGradient>
             <style>{`
-              @keyframes bpWin {
-                0%,100% { opacity:0.22; }
-                50%     { opacity:0.95; }
+              @keyframes blWin {
+                0%,100% { opacity:0.25; }
+                50%     { opacity:0.9; }
               }
-              .bpw { animation: bpWin ease-in-out infinite; }
-              @keyframes bpBar {
-                0%,100% { opacity:0.35; transform:scaleX(0.4); }
-                50%     { opacity:1;    transform:scaleX(1);   }
-              }
-              .bpbar { animation: bpBar 1.4s ease-in-out infinite; transform-origin: center; }
+              .blw { animation: blWin ease-in-out infinite; }
             `}</style>
           </defs>
 
           {/* Ground line */}
-          <line x1="0" y1={GROUND} x2={SVG_W} y2={GROUND} stroke="rgba(59,130,246,0.3)" strokeWidth="1.5" />
+          <line x1="0" y1="150" x2={totalWidth} y2="150" stroke="rgba(59,130,246,0.4)" strokeWidth="2" />
 
-          {/* Buildings */}
-          {BUILDINGS.map((b, i) => (
-            <rect key={i} x={b.x} y={GROUND - b.h} width={b.w} height={b.h}
-              fill="url(#bpBldGrad)" stroke="rgba(59,130,246,0.2)" strokeWidth="0.5" rx="1" />
-          ))}
+          {/* Skyline path — always fully filled (no trace animation in this context) */}
+          <path
+            d={pathD}
+            fill="rgba(15,23,42,0.82)"
+            stroke="rgba(96,165,250,0.85)"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+            style={{ filter: 'drop-shadow(0px -4px 14px rgba(96,165,250,0.35))' }}
+          />
 
-          {/* Windows */}
-          {windows.map(w => (
-            <rect key={w.id} x={w.x} y={w.y} width="4" height="4" fill="#60a5fa" rx="0.5"
-              className="bpw"
-              style={{ animationDelay: w.delay, animationDuration: w.dur, filter: 'drop-shadow(0 0 3px rgba(96,165,250,0.9))' }}
+          {/* Glowing windows */}
+          {windows.map(win => (
+            <rect
+              key={win.id}
+              x={win.x} y={win.y}
+              width="3" height="3"
+              fill="#60A5FA"
+              className="blw"
+              style={{
+                animationDelay: win.delay,
+                animationDuration: win.dur,
+                filter: 'drop-shadow(0px 0px 3px rgba(96,165,250,0.8))',
+              }}
             />
           ))}
 
           {/* Scanning beam */}
-          <rect x={scanX - 3} y={0} width={6} height={GROUND} fill="url(#bpScanGrad)" style={{ opacity: 0.5 }} />
+          <rect x={scanX - 2} y={0} width={4} height={155} fill="url(#blScanGrad)" style={{ opacity: 0.6 }} />
         </svg>
       </div>
 
@@ -282,8 +293,8 @@ export default function BlueprintLoader({ businessName = 'Your Business' }) {
         opacity:   visible ? 1 : 0,
         transform: visible ? 'translateY(0)' : 'translateY(-14px)',
         width: '100%',
-        maxWidth: '620px',
-        minHeight: '180px',
+        maxWidth: '560px',
+        minHeight: '140px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -319,26 +330,27 @@ export default function BlueprintLoader({ businessName = 'Your Business' }) {
             }}>
               {item.label}...
             </p>
-            <div className="bpbar" style={{
+            <div style={{
               width: '34px', height: '3px',
               background: 'linear-gradient(90deg, #1d4ed8, #60a5fa)',
               borderRadius: '2px', margin: '0 auto',
               boxShadow: '0 0 10px rgba(59,130,246,0.5)',
+              animation: 'bpBar 1.4s ease-in-out infinite',
             }} />
           </div>
 
         ) : (
 
-          // ── Quote — editorial/book style ─────────────────────────────────────
+          // ── Quote — same size as stage label, author low-contrast ────────────
           <div style={{ width: '100%', position: 'relative' }}>
-            {/* Decorative large quotation mark */}
+            {/* Subtle decorative quote mark */}
             <div style={{
               position: 'absolute',
-              top: '-24px',
-              left: '-4px',
-              fontSize: '9rem',
+              top: '-18px',
+              left: '-2px',
+              fontSize: '6rem',
               lineHeight: 1,
-              color: 'rgba(59,130,246,0.1)',
+              color: 'rgba(59,130,246,0.08)',
               fontFamily: 'Georgia, "Times New Roman", serif',
               pointerEvents: 'none',
               userSelect: 'none',
@@ -346,36 +358,36 @@ export default function BlueprintLoader({ businessName = 'Your Business' }) {
               &ldquo;
             </div>
 
-            {/* PROMINENT quote text */}
+            {/* Quote text — same visual weight as stage labels */}
             <p style={{
               position: 'relative',
-              color: 'rgba(255,255,255,0.95)',
-              fontSize: 'clamp(1.15rem, 3vw, 1.65rem)',
+              color: 'rgba(226,232,240,0.92)',
+              fontSize: 'clamp(0.8rem, 1.8vw, 0.95rem)',
               fontStyle: 'italic',
-              fontWeight: 300,
-              lineHeight: 1.6,
-              letterSpacing: '-0.015em',
+              fontWeight: 400,
+              lineHeight: 1.7,
+              letterSpacing: '0.01em',
               textAlign: 'center',
-              marginBottom: '1.5rem',
+              marginBottom: '1rem',
             }}>
               &ldquo;{item.text}&rdquo;
             </p>
 
-            {/* Attribution — small, bottom right, book-style */}
+            {/* Attribution — low contrast, small, bottom right */}
             <div style={{ textAlign: 'right', paddingRight: '0.25rem' }}>
               <p style={{
-                color: '#60a5fa',
-                fontSize: '0.72rem',
-                fontWeight: 600,
+                color: '#334155',       /* slate-700 — present but not loud */
+                fontSize: '0.62rem',
+                fontWeight: 500,
                 letterSpacing: '0.04em',
-                marginBottom: '0.15rem',
+                marginBottom: '0.1rem',
               }}>
                 — {item.author}
               </p>
               <p style={{
-                color: '#334155',
-                fontSize: '0.62rem',
-                letterSpacing: '0.03em',
+                color: '#1e293b',       /* slate-800 — even more receded */
+                fontSize: '0.55rem',
+                letterSpacing: '0.02em',
               }}>
                 {item.title}
               </p>

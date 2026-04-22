@@ -274,6 +274,9 @@ export default function App() {
   const [dfyEmail, setDfyEmail] = useState('');
   const [driveLink, setDriveLink] = useState(null);
   const [driveLoading, setDriveLoading] = useState(false);
+  // Blueprint-stage Drive folder link (polled after Stage 4 unlocks)
+  const [blueprintDriveLink, setBlueprintDriveLink] = useState(null);
+  const [blueprintDrivePending, setBlueprintDrivePending] = useState(false);
 
   // ─── Auth state ─────────────────────────────────────────────────────────────
   const [user, setUser] = useState(null);
@@ -806,6 +809,33 @@ export default function App() {
       setBlueprintLoading(false);
     }
   };
+
+  // ─── Poll for blueprint Drive folder link once Stage 4 is active ───────────
+  useEffect(() => {
+    if (stage !== 4 || blueprintDriveLink) return;
+    setBlueprintDrivePending(true);
+    let attempts = 0;
+    let timerId;
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/blueprint/drive-link', { credentials: 'include' });
+        if (res.ok) {
+          const { driveLink: link, ready } = await res.json();
+          if (ready && link) {
+            setBlueprintDriveLink(link);
+            setBlueprintDrivePending(false);
+            return; // stop
+          }
+        }
+      } catch { /* non-fatal */ }
+      attempts++;
+      if (attempts < 24) timerId = setTimeout(poll, 10_000);
+      else setBlueprintDrivePending(false);
+    };
+    timerId = setTimeout(poll, 8_000); // first check after 8s
+    return () => clearTimeout(timerId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage]);
 
   // ─── Frustration / DFY Detection ──────────────────────────────────────────
   const detectFrustration = (message, history = []) => {
@@ -1560,30 +1590,39 @@ export default function App() {
                       <span className="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-500 flex items-center justify-center border border-blue-500/20"><FileText size={16} /></span>
                       Your Implementation Blueprint
                     </h3>
-                    <div className="flex items-center gap-2">
-                      {/* Spec JSON for partners/developers */}
-                      <button
-                        id="download-spec-button"
-                        onClick={downloadSpec}
-                        disabled={specDownloading}
-                        title="Machine-readable build spec for developers and implementation partners"
-                        className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-                        {specDownloading ? 'Building…' : 'AI Build Spec (.json)'}
-                      </button>
-                      {/* PDF blueprint */}
-                      <button
-                        id="download-pdf-blueprint"
-                        onClick={() => downloadPdf(blueprint)}
-                        disabled={pdfDownloading}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-lg shadow-blue-900/30"
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                        {pdfDownloading ? 'Generating…' : 'Download PDF'}
-                      </button>
+
+                    {/* Drive folder card — replaces download buttons */}
+                    <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all ${
+                      blueprintDriveLink
+                        ? 'bg-slate-900 border-slate-700'
+                        : 'bg-slate-900/50 border-slate-800'
+                    }`}>
+                      {/* Drive icon (Google Drive wordmark colors) */}
+                      <svg width="18" height="16" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                        <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                        <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
+                        <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+                        <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                        <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                        <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 27h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                      </svg>
+
+                      {blueprintDriveLink ? (
+                        <a
+                          href={blueprintDriveLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          id="blueprint-drive-folder-link"
+                          className="text-xs font-bold text-slate-300 hover:text-white transition-colors"
+                        >
+                          View your files in Google Drive →
+                        </a>
+                      ) : (
+                        <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1.5">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                          Preparing your files…
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="bg-slate-900/60 border border-slate-800 rounded-[2rem] p-10 shadow-xl">

@@ -616,6 +616,18 @@ app.post('/api/blueprints', requireStrictAuth, (req, res) => {
     }
 });
 
+// Get the Drive folder link for the user's most recent blueprint (polled by frontend)
+app.get('/api/blueprint/drive-link', requireStrictAuth, (req, res) => {
+    try {
+        const row = db.prepare(
+            'SELECT id, drive_link FROM blueprints WHERE user_id = ? ORDER BY created_at DESC LIMIT 1'
+        ).get(req.user.id);
+        res.json({ driveLink: row?.drive_link || null, ready: !!row?.drive_link });
+    } catch (err) {
+        res.status(500).json({ driveLink: null, ready: false });
+    }
+});
+
 // Get user's saved blueprints
 app.get('/api/blueprints', requireStrictAuth, (req, res) => {
     try {

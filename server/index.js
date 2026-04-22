@@ -32,7 +32,7 @@ import { runBrandDnaGenerator } from './agents/brandDnaGenerator.js';
 import { runMarketScout } from './agents/marketScout.js';
 import { runNoiseFilter } from './agents/noiseFilter.js';
 import { generateBlueprintPdf } from './agents/pdfGenerator.js';
-import { uploadBlueprintToDrive } from './agents/driveUploader.js';
+import { uploadBlueprintToDrive, deliverBlueprintPackage, isDriveConfigured } from './agents/driveUploader.js';
 import authRouter, { requireStrictAuth, requireAuth } from './auth.js';
 import db from './db.js';
 
@@ -542,62 +542,64 @@ app.post('/api/blueprints', requireStrictAuth, (req, res) => {
             diyPlaybook ? assistantExpiresAt : null,
         );
 
-        // ─── Auto-upload PDF + Spec JSON to Drive (fire-and-forget) ───────────
-        // This guarantees every processed blueprint is saved to our Drive folder,
-        // even if the user never manually clicks the download button.
-        if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-            const parsedAnswers = typeof answers === 'string' ? JSON.parse(answers) : answers;
-            const rawBizName   = parsedAnswers?.[1] || 'Unknown';
-            const bizName      = rawBizName
+        // ─── Auto-deliver 4-file blueprint package to Drive ───────────────────
+        if (isDriveConfigured()) {
+            const parsedAnswers  = typeof answers === 'string' ? JSON.parse(answers) : answers;
+            const rawBizName     = parsedAnswers?.[1] || 'Unknown';
+            const bizName        = rawBizName
                 .replace(/https?:\/\/[^\s,()[\]]+/gi, '')
                 .replace(/\bwww\.[^\s,()[\]]+/gi, '')
                 .replace(/\([^)]*\)/g, '')
                 .split(/[,—–\-|]/)[0]
                 .trim().replace(/\s+/g, ' ') || 'Unknown';
 
-            const safeName = bizName.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_');
-            const ts       = Date.now();
+            // Fetch customer's full name from users table
+            const userRow     = db.prepare('SELECT full_name, email FROM users WHERE id = ?').get(req.user.id);
+            const customerName = userRow?.full_name || userRow?.email || 'Unknown Customer';
 
-            // Build preview report string (may already be serialised JSON or markdown)
             const previewReportData = typeof previewReport === 'string'
                 ? (() => { try { return JSON.parse(previewReport); } catch { return previewReport; } })()
                 : previewReport;
 
             setImmediate(async () => {
                 try {
-                    // Generate PDF
+                    // Generate Statement of Work PDF
                     const pdfBuffer = await generateBlueprintPdf({
-                        businessName: bizName,
+                        businessName:  bizName,
                         previewReport: previewReportData,
-                        diyPlaybook: diyPlaybook || '',
-                        brandDna:    null,
-                        marketIntel: null,
-                        roiData:     null,
-                        namedSystems: [],
-                        generatedAt:  new Date().toISOString(),
+                        diyPlaybook:   diyPlaybook || '',
+                        brandDna:      null,
+                        marketIntel:   null,
+                        roiData:       null,
+                        namedSystems:  [],
+                        generatedAt:   new Date().toISOString(),
                     });
-                    const pdfFileName = `TekBoss_Blueprint_${safeName}_${ts}.pdf`;
-                    const pdfResult   = await uploadBlueprintToDrive(pdfBuffer, pdfFileName);
-                    console.log('☁️  Auto-upload PDF to Drive:', pdfResult.webViewLink);
 
-                    // Store drive link on the record
+                    // Build Spec JSON
+                    const vd = validatedData
+                        ? (typeof validatedData === 'string' ? JSON.parse(validatedData) : validatedData)
+                        : null;
+                    const specJson = vd ? buildSpecJson(vd, bizName) : null;
+
+                    // Deliver full package → customer subfolder in Drive
+                    const pkg = await deliverBlueprintPackage({
+                        customerName,
+                        businessName:  bizName,
+                        pdfBuffer,
+                        specJson,
+                        intakeSummary: executiveSummary || '',
+                        playbook:      diyPlaybook || '',
+                    });
+
+                    // Save the folder link on the blueprint record
                     try {
                         db.prepare('UPDATE blueprints SET drive_link = ? WHERE id = ?')
-                          .run(pdfResult.webViewLink, id);
+                          .run(pkg.folderLink, id);
                     } catch (_) { /* non-fatal */ }
 
-                    // Also upload Spec JSON if we have validatedData
-                    if (validatedData) {
-                        const vd = typeof validatedData === 'string'
-                            ? JSON.parse(validatedData) : validatedData;
-                        const spec       = buildSpecJson(vd, bizName);
-                        const specBuffer = Buffer.from(JSON.stringify(spec, null, 2), 'utf-8');
-                        const specFile   = `TekBoss_AIBuildSpec_${safeName}_${ts}.json`;
-                        const specResult = await uploadBlueprintToDrive(specBuffer, specFile, 'application/json');
-                        console.log('☁️  Auto-upload Spec JSON to Drive:', specResult.webViewLink);
-                    }
+                    console.log(`☁️  Blueprint package delivered for ${customerName} / ${bizName}`);
                 } catch (driveErr) {
-                    console.error('⚠️  Auto Drive upload failed (non-fatal):', driveErr.message);
+                    console.error('⚠️  Auto Drive delivery failed (non-fatal):', driveErr.message);
                 }
             });
         }

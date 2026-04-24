@@ -56,41 +56,17 @@ const STATIC_QUESTIONS = [
   { id: 23, phase: 'Signal', text: "When you try to make changes in your business, what usually gets in the way — is it time, budget, knowing where to start, or getting your team on board? And are you someone who typically figures it out yourself, or do you prefer to bring in someone to handle it?", hint: 'Be honest — this shapes how we sequence your recommendations and how much hand-holding the blueprint builds in.', example: "Honestly, it's always time — I start strong then real work pulls me back. And I'm a mix: I\'ll figure out simple tools myself but for anything complex I\'d rather hire it out." },
 ];
 
-
-// ─── Brand Wordmark (horizontal SVG — matches logo exactly) ─────────────────
-const BrandWordmark = ({ height = 28, className = '' }) => (
-  <svg
-    viewBox="0 0 420 72"
-    height={height}
-    style={{ width: 'auto', display: 'block' }}
-    xmlns="http://www.w3.org/2000/svg"
-    aria-label="TEK BOSS.ai"
-    className={className}
-  >
-    <text y="54" fontFamily="'Barlow', 'Arial Black', Impact, sans-serif" fontWeight="900" fontSize="62">
-      <tspan fill="#0F1E3D">TEK </tspan>
-      <tspan fill="#3A5F8A">BOSS</tspan>
-      <tspan fill="#4CC8C4" fontSize="42">.ai</tspan>
-    </text>
-    <line x1="0" y1="66" x2="420" y2="66" stroke="#4CC8C4" strokeWidth="2.5"/>
-  </svg>
-);
-
-// ─── Brand Icon Mark (compact TB monogram — for chat bubbles & tiny slots) ──
+// ─── Brand Logo ────────────────────────────────────────────────────────────────
 const BrandLogo = ({ size = 'md', className = '' }) => {
-  const dim = { xs: 20, sm: 32, md: 44, lg: 64, xl: 80, hero: 112 }[size] || 44;
-  const fs  = { xs: 10, sm: 15, md: 20, lg: 28, xl: 36, hero: 50 }[size] || 20;
+  const sizeMap = { xs: 'w-5 h-5', sm: 'w-8 h-8', md: 'w-11 h-11', lg: 'w-16 h-16', xl: 'w-20 h-20', hero: 'w-28 h-28' };
   return (
-    <svg width={dim} height={dim} viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg"
-      className={`rounded-xl ${className}`} aria-label="TEK BOSS.ai">
-      <rect width="44" height="44" rx="9" fill="#0F1E3D"/>
-      <text x="22" y="30" textAnchor="middle"
-        fontFamily="'Barlow', 'Arial Black', Impact, sans-serif"
-        fontWeight="900" fontSize="20" fill="#4CC8C4">TB</text>
-    </svg>
+    <img
+      src="/tekboss-logo.jpg"
+      alt="TEK BOSS.ai"
+      className={`${sizeMap[size] || sizeMap.md} rounded-xl object-cover ${className}`}
+    />
   );
 };
-
 
 // ─── Markdown renderer ─────────────────────────────────────────────────────────
 const MarkdownContent = ({ content }) => (
@@ -173,15 +149,18 @@ const Sidebar = ({ stage, onStartFresh }) => {
   ];
   return (
     <div className="w-72 bg-slate-950 text-slate-400 p-6 flex flex-col h-full border-r border-slate-800/50 flex-shrink-0">
-      <div className="flex flex-col gap-1 mb-12">
-        <BrandWordmark height={28} />
-        <p className="text-[9px] font-bold tracking-[0.25em] text-[#4CC8C4]/70 mt-1 uppercase">AI Blueprint</p>
+      <div className="flex items-center gap-3 mb-12">
+        <BrandLogo size="md" className="shadow-lg shadow-blue-500/20" />
+        <div>
+          <h1 className="font-black text-lg tracking-tighter text-white leading-none uppercase">TEK BOSS</h1>
+          <p className="text-[9px] font-bold tracking-[0.25em] text-blue-500/80 mt-0.5 uppercase">AI Blueprint</p>
+        </div>
       </div>
       <nav className="flex-1 space-y-1">
         {navItems.map(item => (
           <div key={item.id} className={`flex items-center justify-between p-3.5 rounded-xl transition-all
             ${stage === item.id
-              ? 'bg-[#4CC8C4]/10 text-[#4CC8C4] border border-[#4CC8C4]/20'
+              ? 'bg-blue-600/10 text-blue-400 border border-blue-600/20'
               : stage > item.id ? 'text-slate-500' : 'text-slate-700'
             }`}>
             <div className="flex items-center gap-3">
@@ -241,7 +220,7 @@ const AgentBubble = ({ msg }) => (
   <div className="flex items-start gap-3 max-w-2xl">
     <div className={`w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center mt-1
       ${msg.isCheckpoint ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-600/20'
-        : msg.isCompletion ? 'bg-[#4CC8C4]/15 text-[#4CC8C4] border border-[#4CC8C4]/25'
+        : msg.isCompletion ? 'bg-blue-600/20 text-blue-400 border border-blue-600/20'
           : 'bg-slate-800 text-blue-400 border border-slate-700'}`}>
       {msg.isCheckpoint ? <CheckCircle size={15} /> : msg.isCompletion ? <Sparkles size={15} /> : (
         <BrandLogo size="xs" />
@@ -254,7 +233,7 @@ const AgentBubble = ({ msg }) => (
         </p>
       )}
       {msg.isFollowUp && (
-        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#4CC8C4]/60 mb-1">Follow-up</p>
+        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-600/60 mb-1">Follow-up</p>
       )}
       <div className={`rounded-2xl rounded-tl-sm px-5 py-4 text-sm font-medium leading-relaxed
         ${msg.isCheckpoint ? 'bg-emerald-950/40 border border-emerald-800/30 text-emerald-200'
@@ -1145,8 +1124,9 @@ export default function App() {
         <div ref={landingScrollRef} className="fixed inset-0 bg-slate-950 z-50 flex flex-col overflow-y-auto">
           {/* Nav Bar */}
           <nav className="flex items-center justify-between px-6 md:px-12 py-4 flex-shrink-0">
-            <div className="flex items-center">
-              <BrandWordmark height={24} />
+            <div className="flex items-center gap-3">
+              <BrandLogo size="sm" className="shadow-lg shadow-blue-500/20" />
+              <span className="font-black text-white text-sm tracking-tight uppercase">TEK BOSS</span>
             </div>
             <div className="flex items-center gap-3">
               {user ? (
@@ -1154,7 +1134,7 @@ export default function App() {
                   <span className="text-xs text-slate-400 font-medium hidden sm:inline">{user.email}</span>
                   <button
                     onClick={() => setShowDisclaimer(false)}
-                    className="bg-[#4CC8C4] text-[#0F1E3D] font-black px-6 py-2.5 rounded-xl hover:bg-[#3AB8B4] uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-[#4CC8C4]/20"
+                    className="bg-blue-600 text-white font-black px-6 py-2.5 rounded-xl hover:bg-blue-500 uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-blue-900/30"
                   >
                     Continue →
                   </button>
@@ -1169,7 +1149,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => { setAuthMode('register'); setShowAuthModal(true); setAuthError(null); }}
-                    className="bg-[#4CC8C4] text-[#0F1E3D] font-black px-6 py-2.5 rounded-xl hover:bg-[#3AB8B4] uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-[#4CC8C4]/20"
+                    className="bg-blue-600 text-white font-black px-6 py-2.5 rounded-xl hover:bg-blue-500 uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-blue-900/30"
                   >
                     Start Free →
                   </button>
@@ -1275,7 +1255,7 @@ export default function App() {
 
             {/* How It Works */}
             <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#4CC8C4] mb-6">How It Works</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-500 mb-6">How It Works</p>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                 {[
                   { step: '01', title: '24-Question Interview', body: 'Answer one question at a time in a conversational format. No forms. No jargon. Just a direct dialogue designed to surface how your business actually operates.' },
@@ -1283,7 +1263,7 @@ export default function App() {
                   { step: '03', title: 'Your Full AI Blueprint', body: 'After unlocking, you receive a complete package: named AI systems, tool decisions, workflow designs, a Scope of Work, and a 90-day execution roadmap.' },
                 ].map(({ step, title, body }) => (
                   <div key={step} className="flex flex-col gap-3">
-                    <span className="text-[10px] font-black text-[#4CC8C4] tracking-widest">{step}</span>
+                    <span className="text-[10px] font-black text-blue-500 tracking-widest">{step}</span>
                     <h3 className="text-white font-black text-sm uppercase tracking-tight leading-snug">{title}</h3>
                     <p className="text-slate-400 text-xs leading-relaxed font-medium">{body}</p>
                   </div>
@@ -1293,7 +1273,7 @@ export default function App() {
 
             {/* What's Delivered */}
             <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#4CC8C4] mb-6">What's Delivered</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-500 mb-6">What's Delivered</p>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {[
                   { icon: '📋', label: 'Intake Summary', desc: 'A structured record of your goals, constraints, tool stack, and brand voice — the source document for everything else.' },
@@ -1317,7 +1297,7 @@ export default function App() {
 
             {/* Who It's For */}
             <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#4CC8C4] mb-6">Who This Is For</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-500 mb-6">Who This Is For</p>
               <div className="space-y-3">
                 {[
                   "Founders and operators who know AI is important but don't know where to start",
@@ -1326,7 +1306,7 @@ export default function App() {
                   "Anyone who has tried AI tools and found the output too generic to use professionally",
                 ].map((item, i) => (
                   <div key={i} className="flex items-start gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#4CC8C4] shrink-0 mt-1.5" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />
                     <p className="text-slate-400 text-xs font-medium leading-relaxed">{item}</p>
                   </div>
                 ))}
@@ -1383,8 +1363,8 @@ export default function App() {
                     <React.Fragment key={s.id}>
                       <div className="flex flex-col items-center gap-1">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black transition-all duration-500
-                          ${ isComplete ? 'bg-[#4CC8C4] text-[#0F1E3D] shadow-lg shadow-[#4CC8C4]/30'
-                            : isActive  ? 'bg-[#3A5F8A] text-white ring-2 ring-[#4CC8C4]/40 shadow-lg shadow-[#3A5F8A]/40'
+                          ${ isComplete ? 'bg-blue-500 text-white shadow-lg shadow-blue-900/40'
+                            : isActive  ? 'bg-blue-600 text-white ring-2 ring-blue-400/40 shadow-lg shadow-blue-900/40'
                             : 'bg-slate-800 text-slate-600 border border-slate-700'}`}>
                           {isComplete ? <CheckCircle size={12} /> : s.id}
                         </div>
@@ -1455,7 +1435,7 @@ export default function App() {
                     const isLastUser = !messages.slice(i + 1).some(m => m.role === 'user');
                     return (
                       <div className="flex flex-col items-end gap-1">
-                        <div className="max-w-xl bg-[#3A5F8A] text-white rounded-2xl rounded-tr-sm px-5 py-4 text-sm font-medium leading-relaxed shadow-lg">
+                        <div className="max-w-xl bg-blue-600 text-white rounded-2xl rounded-tr-sm px-5 py-4 text-sm font-medium leading-relaxed shadow-lg">
                           {msg.text}
                         </div>
                         {isLastUser && !isTyping && (
@@ -1480,9 +1460,9 @@ export default function App() {
                     </div>
                     <div className="bg-slate-900 border border-slate-800 rounded-2xl rounded-tl-sm px-5 py-4">
                       <div className="flex gap-1 items-center h-4">
-                        <div className="w-2 h-2 bg-[#4CC8C4] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 bg-[#4CC8C4] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 bg-[#4CC8C4] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                       </div>
                     </div>
                   </div>
@@ -1924,7 +1904,7 @@ export default function App() {
                     </>
                   )}
                   {msg.role === 'user' && (
-                    <div className="max-w-xl bg-[#3A5F8A] text-white rounded-2xl rounded-tr-sm px-5 py-4 text-sm font-medium leading-relaxed shadow-lg">
+                    <div className="max-w-xl bg-blue-600 text-white rounded-2xl rounded-tr-sm px-5 py-4 text-sm font-medium leading-relaxed shadow-lg">
                       {msg.content}
                     </div>
                   )}
@@ -1939,9 +1919,9 @@ export default function App() {
                     </div>
                     <div className="bg-slate-900 border border-slate-800 rounded-2xl rounded-tl-sm px-5 py-4">
                       <div className="flex gap-1 items-center h-4">
-                        <div className="w-2 h-2 bg-[#4CC8C4] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 bg-[#4CC8C4] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 bg-[#4CC8C4] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                       </div>
                     </div>
                   </div>
@@ -2006,8 +1986,8 @@ export default function App() {
 
             {/* Logo + Title */}
             <div className="text-center mb-8">
-              <div className="flex justify-center mb-4">
-                <BrandWordmark height={32} />
+              <div className="w-14 h-14 mx-auto mb-4">
+                <BrandLogo size="md" />
               </div>
               <h3 className="text-2xl font-black text-white uppercase tracking-tight">
                 {authMode === 'register' ? 'Create Your Account' : 'Welcome Back'}

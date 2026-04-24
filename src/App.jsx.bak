@@ -1250,74 +1250,19 @@ export default function App() {
             </div>
           </div>
 
-          {/* Learn More — Expanded Section */}
-          <div id="learn-more" className="max-w-3xl mx-auto px-6 pb-12 space-y-6">
-
-            {/* How It Works */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-500 mb-6">How It Works</p>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                {[
-                  { step: '01', title: '24-Question Interview', body: 'Answer one question at a time in a conversational format. No forms. No jargon. Just a direct dialogue designed to surface how your business actually operates.' },
-                  { step: '02', title: 'Free Preview Report', body: 'Before you pay anything, our AI produces a business health analysis — opportunity zones, risk flags, and a read on where AI can move the needle fastest for you.' },
-                  { step: '03', title: 'Your Full AI Blueprint', body: 'After unlocking, you receive a complete package: named AI systems, tool decisions, workflow designs, a Scope of Work, and a 90-day execution roadmap.' },
-                ].map(({ step, title, body }) => (
-                  <div key={step} className="flex flex-col gap-3">
-                    <span className="text-[10px] font-black text-blue-500 tracking-widest">{step}</span>
-                    <h3 className="text-white font-black text-sm uppercase tracking-tight leading-snug">{title}</h3>
-                    <p className="text-slate-400 text-xs leading-relaxed font-medium">{body}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* What's Delivered */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-500 mb-6">What's Delivered</p>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {[
-                  { icon: '📋', label: 'Intake Summary', desc: 'A structured record of your goals, constraints, tool stack, and brand voice — the source document for everything else.' },
-                  { icon: '📄', label: 'Scope of Work (SOW)', desc: 'A professional SOW ready to hand to a developer or AI agency. Defines what gets built, how, and to what standard.' },
-                  { icon: '⚙️', label: 'AI Build Spec', desc: 'A machine-readable file with your named AI systems, integration priorities, and phased rollout — built for technical handoff.' },
-                  { icon: '🗺️', label: '90-Day Playbook', desc: 'Your step-by-step roadmap with named systems, specific tools, and sequenced actions. A built-in coach keeps you on track.' },
-                ].map(({ icon, label, desc }) => (
-                  <div key={label} className="flex gap-4 p-4 bg-slate-800/40 rounded-xl border border-slate-700/50">
-                    <span className="text-xl shrink-0">{icon}</span>
-                    <div>
-                      <p className="text-white text-xs font-black uppercase tracking-tight mb-1">{label}</p>
-                      <p className="text-slate-400 text-[11px] leading-relaxed">{desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="text-slate-600 text-[10px] mt-5 leading-relaxed">
-                All four files are automatically delivered to a private Google Drive folder — no manual downloads required.
+          {/* Collapsible Info Section */}
+          <div id="learn-more" className="max-w-2xl mx-auto px-6 pb-8">
+            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-left">
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-500 mb-4">What to expect</p>
+              <ul className="space-y-3 text-sm text-slate-400 font-medium">
+                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-blue-500 shrink-0 mt-0.5" /> <span><strong className="text-white">24 questions</strong> asked one at a time, conversational format</span></li>
+                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-blue-500 shrink-0 mt-0.5" /> <span><strong className="text-white">Free Preview Report</strong> with business health & opportunity analysis</span></li>
+                <li className="flex items-start gap-3"><CheckCircle size={14} className="text-blue-500 shrink-0 mt-0.5" /> <span><strong className="text-white">Full AI Blueprint</strong> with named systems, tools, and 90-day plan</span></li>
+              </ul>
+              <p className="text-slate-600 text-[10px] mt-5 leading-relaxed italic">
+                Strategic projections are algorithmic estimates based on provided data. Final authority rests with the User.
               </p>
             </div>
-
-            {/* Who It's For */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-500 mb-6">Who This Is For</p>
-              <div className="space-y-3">
-                {[
-                  "Founders and operators who know AI is important but don't know where to start",
-                  "Service businesses tired of generic advice that doesn't account for how they actually work",
-                  "Teams evaluating AI tools who need a structured decision framework — not more demos",
-                  "Anyone who has tried AI tools and found the output too generic to use professionally",
-                ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />
-                    <p className="text-slate-400 text-xs font-medium leading-relaxed">{item}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Disclaimer */}
-            <p className="text-slate-600 text-[10px] leading-relaxed italic text-center max-w-lg mx-auto pb-2">
-              Strategic projections are algorithmic estimates based on provided data. Final authority rests with the User.
-            </p>
-
           </div>
 
           {/* Footer */}

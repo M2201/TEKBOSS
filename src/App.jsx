@@ -68,8 +68,8 @@ const BrandWordmark = ({ height = 28, className = '' }) => (
     className={className}
   >
     <text y="54" fontFamily="'Barlow', 'Arial Black', Impact, sans-serif" fontWeight="900" fontSize="62">
-      <tspan fill="#0F1E3D">TEK </tspan>
-      <tspan fill="#3A5F8A">BOSS</tspan>
+      <tspan fill="#FFFFFF">TEK </tspan>
+      <tspan fill="#7BB5DE">BOSS</tspan>
       <tspan fill="#4CC8C4" fontSize="42">.ai</tspan>
     </text>
     <line x1="0" y1="66" x2="420" y2="66" stroke="#4CC8C4" strokeWidth="2.5"/>

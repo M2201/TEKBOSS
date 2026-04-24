@@ -1267,7 +1267,7 @@ export default function App() {
 
           {/* Footer */}
           <footer className="text-center py-6 text-slate-600 text-xs flex-shrink-0">
-            © 2026 TEK BOSS · privacy@thetekboss.com
+            © 2026 TEK BOSS.ai
           </footer>
         </div>
       )}

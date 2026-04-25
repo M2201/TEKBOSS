@@ -1177,12 +1177,10 @@ export default function App() {
                 <BrandWordmark width={320} />
               </div>
 
-              {/* Eyebrow — clean, no animation */}
-              <div className="flex items-center justify-center gap-4 mb-10">
-                <div className="h-px w-12 bg-gradient-to-r from-transparent to-blue-500/50" />
-                <span className="text-blue-400 text-[10px] font-black uppercase tracking-[0.35em] whitespace-nowrap">Blueprint + 90-Day AI Implementation Coach</span>
-                <div className="h-px w-12 bg-gradient-to-l from-transparent to-blue-500/50" />
-              </div>
+              {/* Eyebrow */}
+              <p className="text-blue-400 text-[11px] font-black uppercase tracking-[0.35em] mb-10">
+                Your Custom AI Business Blueprint
+              </p>
 
               <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.05] tracking-tighter mb-8">
                 Stop Guessing<br />
@@ -1190,7 +1188,7 @@ export default function App() {
                 <span className="text-blue-400/80">in Your Business.</span>
               </h1>
               <p className="text-slate-300 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed font-medium">
-                In 15 minutes, your AI coach interviews your business and builds a fully custom blueprint — then stays with you for 90 days, guiding every step of your implementation. You own the plan. We make sure you know exactly how to execute it.
+                In minutes, our AI extracts the specifics of your business and delivers a fully custom blueprint — showing you exactly where AI creates leverage, where it doesn't, and a step-by-step interactive instruction system to implement it correctly.
               </p>
 
               {/* Video Button + Modal */}
@@ -1264,14 +1262,29 @@ export default function App() {
           {/* Learn More — Expanded Section */}
           <div className="max-w-3xl mx-auto px-6 pb-14 space-y-8">
 
+            {/* Founder Quote */}
+            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 sm:p-10 relative overflow-hidden">
+              <div className="absolute top-4 left-6 text-blue-500/15 text-8xl font-black leading-none select-none">&ldquo;</div>
+              <blockquote className="relative z-10">
+                <p className="text-slate-200 text-base md:text-lg leading-relaxed font-medium mb-6">
+                  AI is making it easier than ever to build powerful systems inside your business. But doing it wrong is just as easy. Too many business owners waste real time and money on tools that don&rsquo;t fit, automations built for someone else&rsquo;s problems, and advice that was never specific to them. I built TEK BOSS for the entrepreneur who is ready to stop guessing &mdash; to get a real blueprint extracted from their own business, showing exactly where AI belongs and where it doesn&rsquo;t. Whether you want to lead your own implementation or have our team build it for you, it starts with a blueprint built around <em>you</em>.
+                </p>
+                <footer className="flex items-center gap-3">
+                  <div className="w-8 h-px bg-blue-500/50" />
+                  <cite className="text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] not-italic">The Founder, TEK BOSS.ai</cite>
+                </footer>
+              </blockquote>
+            </div>
+
             {/* How It Works */}
+
             <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 sm:p-10">
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-8">How It Works</p>
               <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
                 {[
-                  { step: '01', title: 'Your Coach Interviews You', body: 'Answer one focused question at a time — no forms, no jargon. The AI adapts to your answers, getting a precise read on how your business actually operates and where the real friction is.' },
-                  { step: '02', title: 'See Your Results Before You Pay', body: 'Before spending a dollar, your coach produces a free business health snapshot — opportunity zones, time-loss areas, and the top 3 places AI can move the needle fastest for your specific situation.' },
-                  { step: '03', title: 'Unlock Your Full Blueprint', body: 'Get a complete, custom package: named AI systems, tool recommendations, workflow designs, a Scope of Work ready for any developer or agency, and a week-by-week 90-day execution roadmap.' },
+                  { step: '01', title: 'AI Extracts Your Business Blueprint', body: 'Answer one targeted question at a time. Our AI asks precisely the right questions to understand how your business actually operates — your processes, constraints, goals, and gaps — before generating anything.' },
+                  { step: '02', title: 'Get Your Free Analysis', body: 'Receive a free business intelligence report before committing — opportunity zones mapped to your operations, time-drain areas identified, and a preview of where AI creates the most leverage for your specific business.' },
+                  { step: '03', title: 'Unlock Your Blueprint + AI Instructor', body: 'Get your complete custom blueprint — named AI systems, specific tools, workflow designs, and a Scope of Work — paired with an interactive AI instructor that guides your implementation every step of the way.' },
                 ].map(({ step, title, body }) => (
                   <div key={step} className="flex flex-col gap-4">
                     <span className="text-xs font-black text-blue-400 tracking-widest">{step}</span>
@@ -1286,45 +1299,54 @@ export default function App() {
             <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 sm:p-10">
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-8">What's Delivered</p>
 
-              {/* Featured deliverable: 90-Day AI Coach */}
-              <div className="flex gap-4 p-5 bg-blue-600/8 rounded-xl border border-blue-500/30 mb-6">
-                <span className="text-2xl shrink-0">🤖</span>
+              {/* Featured: Interactive AI Instructor */}
+              <div className="flex gap-5 p-5 rounded-xl border border-blue-500/30 bg-blue-600/5 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-blue-300 text-[10px] font-black uppercase tracking-wide">AI</span>
+                </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <p className="text-white text-sm font-black uppercase tracking-tight">90-Day AI Implementation Coach</p>
+                    <p className="text-white text-sm font-black uppercase tracking-tight">Interactive AI Instructor</p>
                     <span className="text-[9px] font-black uppercase tracking-widest bg-blue-500/20 text-blue-300 px-2.5 py-1 rounded-full">Included</span>
                   </div>
-                  <p className="text-slate-300 text-sm leading-relaxed">After your blueprint is delivered, your AI coach stays with you for 90 days — walking you through each phase of your plan, answering questions, and keeping you on track until implementation is complete. This is the engine that turns strategy into execution.</p>
+                  <p className="text-slate-300 text-sm leading-relaxed">Once your blueprint is delivered, an AI-powered interactive instructor walks you through your 90-day implementation plan — answering your questions, guiding each phase, providing real-time feedback, and keeping you on track as you work through your plan. Strategy becomes execution.</p>
                 </div>
               </div>
 
-              {/* Supporting documents */}
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              {/* Supporting deliverables — numbered, no emojis */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {[
-                  { icon: '📋', label: 'Intake Summary', desc: 'A structured record of your goals, constraints, tool stack, and brand voice — the source document for everything else.' },
-                  { icon: '📄', label: 'Scope of Work (SOW)', desc: 'A professional SOW ready to hand to a developer or AI agency. Defines what gets built, how, and to what standard.' },
-                  { icon: '⚙️', label: 'AI Build Spec', desc: 'A machine-readable file with your named AI systems, integration priorities, and phased rollout — built for technical handoff.' },
-                  { icon: '🗺️', label: '90-Day Action Roadmap', desc: 'Your week-by-week implementation roadmap with named systems, specific tools, and sequenced actions.' },
-                ].map(({ icon, label, desc }) => (
-                  <div key={label} className="flex gap-4 p-5 bg-slate-800/40 rounded-xl border border-slate-700/50">
-                    <span className="text-2xl shrink-0">{icon}</span>
+                  { num: '01', label: 'Business Intelligence Report', desc: 'A structured analysis of your goals, constraints, tool stack, and brand voice — the extraction that powers everything else.' },
+                  { num: '02', label: 'Scope of Work (SOW)', desc: 'A professional SOW ready to hand to a developer or AI agency. Defines what gets built, how, and to what standard.' },
+                  { num: '03', label: 'AI Implementation Spec', desc: 'Your named AI systems, integration priorities, and phased rollout in a format built for direct technical handoff.' },
+                  { num: '04', label: '90-Day Action Roadmap', desc: 'Week-by-week implementation roadmap with named systems, specific tools, and sequenced actions — built from your business.' },
+                ].map(({ num, label, desc }) => (
+                  <div key={num} className="flex gap-4 p-5 bg-slate-800/40 rounded-xl border border-slate-700/50">
+                    <div className="w-8 h-8 rounded-lg bg-slate-700/60 flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-blue-400 text-[10px] font-black">{num}</span>
+                    </div>
                     <div>
-                      <p className="text-white text-sm font-black uppercase tracking-tight mb-2">{label}</p>
+                      <p className="text-white text-sm font-black uppercase tracking-tight mb-1.5">{label}</p>
                       <p className="text-slate-300 text-sm leading-relaxed">{desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Not done for you — expectation setting */}
-              <div className="mt-6 p-5 border border-slate-700/50 bg-slate-800/20 rounded-xl">
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  <span className="text-white font-black">What TEK BOSS is not:</span> We don’t build AI systems for you. We give you the complete strategy, the technical specs, and 90 days of AI-guided coaching to implement it yourself — or hand it to your team or any developer ready to execute.
-                </p>
+              {/* Dual path — DIY or full service */}
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-5 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                  <p className="text-white text-xs font-black uppercase tracking-widest mb-2">Own Your Journey</p>
+                  <p className="text-slate-400 text-sm leading-relaxed">Use your blueprint and AI instructor to implement on your own terms — guided every step of the way.</p>
+                </div>
+                <div className="p-5 bg-blue-600/5 rounded-xl border border-blue-500/20">
+                  <p className="text-blue-300 text-xs font-black uppercase tracking-widest mb-2">Full-Service Available</p>
+                  <p className="text-slate-400 text-sm leading-relaxed">Want it built for you? Our team takes your custom blueprint and implements it end-to-end — specific to your business.</p>
+                </div>
               </div>
 
               <p className="text-slate-500 text-xs mt-5 leading-relaxed">
-                All documents are automatically delivered to a private Google Drive folder — no downloads required.
+                All documents delivered automatically to a private Google Drive folder — no downloads required.
               </p>
             </div>
 

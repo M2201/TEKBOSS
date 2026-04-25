@@ -57,16 +57,15 @@ const STATIC_QUESTIONS = [
 ];
 
 
-// ─── Brand Wordmark (uses real logo PNG from public/) ───────────────────────
- const BrandWordmark = ({ height = 28, className = '' }) => (
-   <img
-     src="/TEKBOSSLOGO.png"
-     alt="TEK BOSS.ai"
-     height={height}
-     style={{ height, width: 'auto', display: 'block' }}
-     className={className}
-   />
- );
+// ─── Brand Wordmark (uses real cropped logo PNG) ──────────────────────
+const BrandWordmark = ({ height, width, className = '' }) => (
+  <img
+    src="/TEKBOSSLOGO.png"
+    alt="TEK BOSS.ai"
+    style={{ height: height ?? 'auto', width: width ?? 'auto', display: 'block' }}
+    className={className}
+  />
+);
 
 
 // ─── Brand Icon Mark (compact TB monogram — for chat bubbles & tiny slots) ──
@@ -166,8 +165,8 @@ const Sidebar = ({ stage, onStartFresh }) => {
   ];
   return (
     <div className="w-72 bg-slate-950 text-slate-400 p-6 flex flex-col h-full border-r border-slate-800/50 flex-shrink-0">
-      <div className="mb-10">
-        <BrandWordmark height={100} />
+      <div className="mb-8">
+        <BrandWordmark width={210} />
       </div>
       <nav className="flex-1 space-y-1">
         {navItems.map(item => (
@@ -1135,11 +1134,10 @@ export default function App() {
       {/* ── Landing Page Hero ── */}
       {showDisclaimer && (
         <div ref={landingScrollRef} className="fixed inset-0 bg-slate-950 z-50 flex flex-col overflow-y-auto">
-          {/* Nav Bar */}
-          <nav className="flex items-center justify-between px-6 md:px-12 py-4 flex-shrink-0">
-            <div className="flex items-center">
-              <BrandWordmark height={80} />
-            </div>
+          {/* Nav Bar — clean, buttons only. Logo lives in the hero. */}
+          <nav className="flex items-center justify-between px-6 md:px-12 py-5 flex-shrink-0">
+            {/* Small brand mark for orientation */}
+            <BrandWordmark width={130} className="opacity-70" />
             <div className="flex items-center gap-3">
               {user ? (
                 <>
@@ -1173,6 +1171,15 @@ export default function App() {
           {/* Hero Section */}
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6 md:px-12 pb-8">
             <div className="max-w-4xl mx-auto">
+
+              {/* Logo — centered brand statement */}
+              <div className="flex justify-center mb-6">
+                <BrandWordmark width={320} />
+              </div>
+
+              <p className="text-slate-500 text-[10px] uppercase tracking-[0.4em] font-bold mb-10">
+                AI-Powered Business Blueprint
+              </p>
               <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.05] tracking-tighter mb-8">
                 Stop Guessing<br />
                 How to Use AI<br />
@@ -1986,8 +1993,8 @@ export default function App() {
 
             {/* Logo + Title */}
             <div className="text-center mb-8">
-              <div className="flex justify-center mb-6">
-                <BrandWordmark height={90} />
+              <div className="flex justify-center mb-5">
+                <BrandWordmark width={220} />
               </div>
               <h3 className="text-2xl font-black text-white uppercase tracking-tight">
                 {authMode === 'register' ? 'Create Your Account' : 'Welcome Back'}

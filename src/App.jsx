@@ -1177,16 +1177,19 @@ export default function App() {
                 <BrandWordmark width={320} />
               </div>
 
-              <p className="text-slate-500 text-[10px] uppercase tracking-[0.4em] font-bold mb-10">
-                AI-Powered Business Blueprint
-              </p>
+              {/* Badge — coach positioning */}
+              <div className="inline-flex items-center gap-2.5 bg-blue-600/10 border border-blue-500/25 rounded-full px-5 py-2.5 mb-10">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
+                <span className="text-blue-300 text-[11px] font-bold uppercase tracking-[0.25em]">Your AI Business Coach &mdash; Ready Now</span>
+              </div>
+
               <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.05] tracking-tighter mb-8">
                 Stop Guessing<br />
                 How to Use AI<br />
                 <span className="text-blue-400/80">in Your Business.</span>
               </h1>
-              <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed font-medium">
-                In minutes, see exactly what to automate, where time is being lost, and a clear path for how your business can operate over the next 90 days.
+              <p className="text-slate-300 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed font-medium">
+                In 15 minutes, your personal AI coach interviews your business, identifies exactly where AI saves you time and money, and delivers a complete custom blueprint — not a template, not generic advice. Built for <em>your</em> business.
               </p>
 
               {/* Video Button + Modal */}
@@ -1245,7 +1248,7 @@ export default function App() {
                   }}
                   className="bg-white text-slate-950 font-black px-12 py-5 rounded-2xl hover:bg-slate-200 uppercase tracking-widest text-xs shadow-xl flex items-center justify-center gap-2 transition-all mx-auto"
                 >
-                  {user ? `Continue Session →` : <>Start Your Free Analysis <ArrowRight size={16} /></>}
+                  {user ? `Continue Session →` : <><span>Start My Free Interview</span><ArrowRight size={16} /></>}
                 </button>
                 {user && (
                   <p className="text-slate-500 text-[11px] mt-3 text-center">
@@ -1265,9 +1268,9 @@ export default function App() {
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-8">How It Works</p>
               <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
                 {[
-                  { step: '01', title: '24-Question Interview', body: 'Answer one question at a time in a conversational format. No forms, no jargon — just a direct dialogue designed to surface how your business actually operates.' },
-                  { step: '02', title: 'Free Preview Report', body: 'Before you pay anything, our AI produces a business health analysis — opportunity zones, risk flags, and a read on where AI can move the needle fastest for you.' },
-                  { step: '03', title: 'Your Full AI Blueprint', body: 'After unlocking, you receive a complete package: named AI systems, tool decisions, workflow designs, a Scope of Work, and a 90-day execution roadmap.' },
+                  { step: '01', title: 'Your Coach Interviews You', body: 'Answer one focused question at a time — no forms, no jargon. The AI adapts to your answers, getting a precise read on how your business actually operates and where the real friction is.' },
+                  { step: '02', title: 'See Your Results Before You Pay', body: 'Before spending a dollar, your coach produces a free business health snapshot — opportunity zones, time-loss areas, and the top 3 places AI can move the needle fastest for your specific situation.' },
+                  { step: '03', title: 'Unlock Your Full Blueprint', body: 'Get a complete, custom package: named AI systems, tool recommendations, workflow designs, a Scope of Work ready for any developer or agency, and a week-by-week 90-day execution roadmap.' },
                 ].map(({ step, title, body }) => (
                   <div key={step} className="flex flex-col gap-4">
                     <span className="text-xs font-black text-blue-400 tracking-widest">{step}</span>
@@ -1307,10 +1310,10 @@ export default function App() {
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-8">Who This Is For</p>
               <div className="space-y-4">
                 {[
-                  "Founders and operators who know AI is important but don't know where to start",
-                  "Service businesses tired of generic advice that doesn't account for how they actually work",
-                  "Teams evaluating AI tools who need a structured decision framework — not more demos",
-                  "Anyone who has tried AI tools and found the output too generic to use professionally",
+                  "Founders and operators who know AI matters but have no idea where to actually start",
+                  "Service businesses tired of generic AI advice that ignores how they actually run their day",
+                  "Teams evaluating AI tools who need a real decision framework — not another demo or webinar",
+                  "Anyone who has tried ChatGPT, got something generic, and walked away thinking \"this isn't for my business\"",
                 ].map((item, i) => (
                   <div key={i} className="flex items-start gap-4">
                     <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-1.5" />

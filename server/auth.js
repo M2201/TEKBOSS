@@ -42,7 +42,9 @@ router.post('/register', async (req, res) => {
     const { email, password, fullName, recaptchaToken } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required.' });
 
-    // ── reCAPTCHA v3 verification ─────────────────────────────────────────────
+    // ── reCAPTCHA v3 — log only, non-blocking ────────────────────────────────
+    // New domains receive low scores from Google regardless of legitimacy.
+    // We log to monitor and can enforce later once the domain has history.
     const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET_KEY;
     if (RECAPTCHA_SECRET && recaptchaToken) {
         try {
@@ -51,14 +53,9 @@ router.post('/register', async (req, res) => {
                 { method: 'POST' }
             );
             const verifyData = await verifyRes.json();
-            if (!verifyData.success || verifyData.score < 0.3) {
-                console.warn('⚠️  reCAPTCHA failed — score:', verifyData.score, verifyData['error-codes']);
-                return res.status(403).json({ error: 'Bot check failed. Please try again.' });
-            }
-            console.log('✅ reCAPTCHA passed — score:', verifyData.score);
+            console.log(`[reCAPTCHA] score=${verifyData.score} success=${verifyData.success} errors=${verifyData['error-codes']}`);
         } catch (captchaErr) {
-            console.error('reCAPTCHA verification error:', captchaErr.message);
-            // Non-fatal: allow registration if the captcha check itself fails (network issue)
+            console.error('reCAPTCHA check error:', captchaErr.message);
         }
     }
 

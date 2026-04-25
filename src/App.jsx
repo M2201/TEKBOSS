@@ -546,7 +546,7 @@ export default function App() {
     assistantBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [assistantMessages, assistantTyping]);
 
-  // ─── Check auth on mount ────────────────────────────────────────────────
+  // ─── Check auth on mount — hide splash when done ──────────────────────
   useEffect(() => {
     (async () => {
       try {
@@ -556,6 +556,8 @@ export default function App() {
           setUser(data.user);
         }
       } catch { /* not logged in */ }
+      // Always hide splash once auth resolves (or fails)
+      if (typeof window.__hideSplash === 'function') window.__hideSplash();
     })();
   }, []);
 

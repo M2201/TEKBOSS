@@ -10,10 +10,80 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://www.google.com/recaptcha/api.js?render=6LcPWMEsAAAAAMEVz0X14p4kWdl6uvx9tFNTXaFx" async defer></script>
-    <style>.grecaptcha-badge { visibility: hidden !important; }</style>
+    <style>
+      .grecaptcha-badge { visibility: hidden !important; }
+
+      /* ── Instant splash screen — visible before React mounts ── */
+      #splash {
+        position: fixed; inset: 0;
+        background: #020817;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.4s ease;
+      }
+      #splash.hidden { opacity: 0; pointer-events: none; }
+
+      .splash-logo {
+        width: 56px; height: 56px;
+        background: #0A0F2A;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 20px;
+        box-shadow: 0 0 40px rgba(24,24,232,0.3);
+      }
+      .splash-logo svg { width: 34px; height: 34px; }
+
+      .splash-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 13px; font-weight: 900;
+        letter-spacing: 0.25em; text-transform: uppercase;
+        color: #fff; margin-bottom: 32px;
+      }
+
+      .splash-bar {
+        width: 180px; height: 2px;
+        background: #1e293b;
+        border-radius: 999px; overflow: hidden;
+      }
+      .splash-bar-fill {
+        height: 100%; width: 0%;
+        background: linear-gradient(90deg, #1818E8, #60a5fa);
+        border-radius: 999px;
+        animation: splashLoad 2s ease-out forwards;
+      }
+      @keyframes splashLoad {
+        0%   { width: 0%; }
+        60%  { width: 75%; }
+        100% { width: 100%; }
+      }
+    </style>
   </head>
-  <body>
+  <body style="margin:0; background:#020817;">
+
+    <!-- Instant splash — shown before JS loads, hidden when React mounts -->
+    <div id="splash">
+      <div class="splash-logo">
+        <svg viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+          <rect width="44" height="44" rx="9" fill="#0A0F2A"/>
+          <text x="22" y="30" text-anchor="middle"
+            font-family="'Inter','Arial Black',sans-serif"
+            font-weight="900" font-size="18" fill="#1818E8">TB</text>
+        </svg>
+      </div>
+      <div class="splash-title">TEK BOSS.ai</div>
+      <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <script>
+      // Hide splash once React has mounted
+      window.__hideSplash = function() {
+        var s = document.getElementById('splash');
+        if (s) { s.classList.add('hidden'); setTimeout(function(){ s.remove(); }, 500); }
+      };
+    </script>
   </body>
 </html>

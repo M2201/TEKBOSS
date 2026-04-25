@@ -51,7 +51,7 @@ router.post('/register', async (req, res) => {
                 { method: 'POST' }
             );
             const verifyData = await verifyRes.json();
-            if (!verifyData.success || verifyData.score < 0.5) {
+            if (!verifyData.success || verifyData.score < 0.3) {
                 console.warn('⚠️  reCAPTCHA failed — score:', verifyData.score, verifyData['error-codes']);
                 return res.status(403).json({ error: 'Bot check failed. Please try again.' });
             }

@@ -166,9 +166,8 @@ const Sidebar = ({ stage, onStartFresh }) => {
   ];
   return (
     <div className="w-72 bg-slate-950 text-slate-400 p-6 flex flex-col h-full border-r border-slate-800/50 flex-shrink-0">
-      <div className="flex flex-col gap-1 mb-12">
-        <BrandWordmark height={28} />
-        <p className="text-[9px] font-bold tracking-[0.25em] text-blue-400/70 mt-1 uppercase">AI Blueprint</p>
+      <div className="mb-10">
+        <BrandWordmark height={52} style={{ maxWidth: '200px' }} />
       </div>
       <nav className="flex-1 space-y-1">
         {navItems.map(item => (
@@ -1139,7 +1138,7 @@ export default function App() {
           {/* Nav Bar */}
           <nav className="flex items-center justify-between px-6 md:px-12 py-4 flex-shrink-0">
             <div className="flex items-center">
-              <BrandWordmark height={24} />
+              <BrandWordmark height={36} />
             </div>
             <div className="flex items-center gap-3">
               {user ? (
@@ -1987,8 +1986,8 @@ export default function App() {
 
             {/* Logo + Title */}
             <div className="text-center mb-8">
-              <div className="flex justify-center mb-4">
-                <BrandWordmark height={32} />
+              <div className="flex justify-center mb-6">
+                <BrandWordmark height={48} />
               </div>
               <h3 className="text-2xl font-black text-white uppercase tracking-tight">
                 {authMode === 'register' ? 'Create Your Account' : 'Welcome Back'}

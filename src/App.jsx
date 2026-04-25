@@ -1275,6 +1275,9 @@ export default function App() {
                 <p className="text-slate-200 text-base md:text-lg leading-relaxed font-medium mb-6">
                   TEK BOSS approaches AI the right way. It analyzes how your business actually operates and designs a system where each piece of AI has a role&mdash;working together to create something cohesive, elevated, and aligned with your story and brand.
                 </p>
+                <p className="text-slate-200 text-base md:text-lg leading-relaxed font-medium mb-6">
+                  And when your blueprint is ready, you&rsquo;re not left to figure it out alone. A 90-day execution plan maps every step of your implementation&mdash;and an AI-powered instructor walks you through it, phase by phase, cutting through the complexity so you always know exactly what to do next.
+                </p>
                 <footer className="flex items-center gap-3">
                   <div className="w-8 h-px bg-blue-500/50" />
                   <cite className="text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] not-italic">Mandle Rousseau &mdash; Visionary</cite>

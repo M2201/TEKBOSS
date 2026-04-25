@@ -15,4 +15,16 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-pdf': ['jspdf', 'html2canvas'],
+          'vendor-ui': ['lucide-react', 'framer-motion'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
+  },
 })

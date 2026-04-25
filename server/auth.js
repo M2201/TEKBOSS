@@ -70,7 +70,8 @@ router.post('/register', async (req, res) => {
         stmt.run(id, email.toLowerCase(), hash, fullName || '');
 
         const token = jwt.sign({ id, email }, JWT_SECRET, { expiresIn: '7d' });
-        res.cookie('jwt', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax' });
+        const isProduction = process.env.NODE_ENV === 'production';
+        res.cookie('jwt', token, { httpOnly: true, secure: isProduction, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: isProduction ? 'strict' : 'lax' });
 
         res.json({ message: 'Registered successfully', user: { id, email, fullName } });
     } catch (err) {
@@ -96,7 +97,8 @@ router.post('/login', async (req, res) => {
         }
 
         const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-        res.cookie('jwt', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax' });
+        const isProduction = process.env.NODE_ENV === 'production';
+        res.cookie('jwt', token, { httpOnly: true, secure: isProduction, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: isProduction ? 'strict' : 'lax' });
 
         res.json({ message: 'Logged in successfully', user: { id: user.id, email: user.email, fullName: user.full_name } });
     } catch (err) {

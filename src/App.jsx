@@ -156,34 +156,89 @@ const LockedSection = ({ icon: Icon, title, description }) => (
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 const Sidebar = ({ stage, onStartFresh }) => {
   const [confirmReset, setConfirmReset] = React.useState(false);
-  const navItems = [
+  const steps = [
     { id: 1, label: 'Discovery Interview', icon: MessageSquare },
-    { id: 2, label: 'Processing', icon: Cpu },
-    { id: 3, label: 'Preview Report', icon: BarChart3 },
-    { id: 4, label: 'Full Blueprint', icon: FileText, locked: stage < 4 },
-    { id: 5, label: 'Build-Out Coach', icon: Bot, locked: stage < 5 },
+    { id: 2, label: 'Processing',          icon: Cpu },
+    { id: 3, label: 'Preview Report',      icon: BarChart3 },
+    { id: 4, label: 'Full Blueprint',      icon: FileText, locked: stage < 4 },
+    { id: 5, label: 'Build-Out Coach',     icon: Bot,      locked: stage < 5 },
   ];
   return (
     <div className="w-72 bg-slate-950 text-slate-400 p-6 flex flex-col h-full border-r border-slate-800/50 flex-shrink-0">
       <div className="mb-8">
         <BrandWordmark width={210} />
       </div>
-      <nav className="flex-1 space-y-1">
-        {navItems.map(item => (
-          <div key={item.id} className={`flex items-center justify-between p-3.5 rounded-xl transition-all
-            ${stage === item.id
-              ? 'bg-blue-600/10 text-blue-400 border border-blue-600/20'
-              : stage > item.id ? 'text-slate-500' : 'text-slate-700'
-            }`}>
-            <div className="flex items-center gap-3">
-              <item.icon size={18} />
-              <span className="text-sm font-bold">{item.label}</span>
-            </div>
-            {item.locked && <Lock size={12} className="opacity-30" />}
-            {stage > item.id && <CheckCircle size={12} className="text-emerald-600/60" />}
+
+      {/* ── Progress Status Tracker — not navigation ── */}
+      <div className="flex-1">
+        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-700 mb-5 pl-1">Progress</p>
+        <div className="relative">
+          {/* Vertical connector line */}
+          <div className="absolute left-[18px] top-5 bottom-5 w-px bg-slate-800/80" />
+
+          <div className="space-y-1">
+            {steps.map(step => {
+              const isComplete = stage > step.id;
+              const isActive   = stage === step.id;
+              const isFuture   = stage < step.id;
+              const statusLabel = isComplete ? 'Complete' : isActive ? 'In Progress' : step.locked ? 'Locked' : 'Pending';
+              return (
+                <div
+                  key={step.id}
+                  className="flex items-center gap-4 py-2.5 relative cursor-default select-none"
+                >
+                  {/* Step circle indicator */}
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 z-10 border-2 transition-none
+                    ${
+                      isComplete
+                        ? 'bg-emerald-950/40 border-emerald-700/50 text-emerald-500'
+                        : isActive
+                          ? 'bg-blue-950/50 border-blue-500/70 text-blue-400'
+                          : 'bg-slate-950 border-slate-800 text-slate-700'
+                    }`}
+                  >
+                    {isComplete
+                      ? <CheckCircle size={15} />
+                      : <step.icon size={15} />
+                    }
+                  </div>
+
+                  {/* Label + status */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs font-bold truncate leading-tight
+                      ${
+                        isActive    ? 'text-white'
+                        : isComplete ? 'text-slate-500'
+                        : 'text-slate-700'
+                      }`}
+                    >
+                      {step.label}
+                    </p>
+                    <p className={`text-[9px] font-black uppercase tracking-[0.2em] mt-0.5
+                      ${
+                        isActive    ? 'text-blue-400'
+                        : isComplete ? 'text-emerald-700'
+                        : step.locked ? 'text-slate-800'
+                        : 'text-slate-700'
+                      }`}
+                    >
+                      {statusLabel}
+                    </p>
+                  </div>
+
+                  {/* Right-side status icon */}
+                  {isComplete && !isActive && (
+                    <CheckCircle size={11} className="text-emerald-700/60 shrink-0" />
+                  )}
+                  {!isComplete && !isActive && step.locked && (
+                    <Lock size={11} className="text-slate-800 shrink-0" />
+                  )}
+                </div>
+              );
+            })}
           </div>
-        ))}
-      </nav>
+        </div>
+      </div>
 
       {/* ── Start Fresh — visible before paywall ── */}
       {onStartFresh && (
@@ -265,7 +320,9 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [multiSelectedOptions, setMultiSelectedOptions] = useState([]);
-  // Brand upload state (Q25)
+  // Brand upload state (gate before synthesis)
+  const [showBrandGate, setShowBrandGate] = useState(false);
+  const [pendingAnswers, setPendingAnswers] = useState(null);
   const [brandStep, setBrandStep] = useState('choice');  // 'choice' | 'files' | 'logo'
   const [brandFiles, setBrandFiles] = useState([]);
   const [logoFile, setLogoFile] = useState(null);
@@ -697,22 +754,27 @@ export default function App() {
     advanceQuestion(newAnswers);
   };
 
-  // ─── Brand Upload Submit (Q25) ──────────────────────────────────────────────
-  const submitBrandAnswer = (answerText) => {
-    if (!currentQuestion) return;
-    setMessages(prev => [...prev, { role: 'user', text: answerText }]);
-    const newAnswers = { ...answers, [currentQuestion.id]: answerText };
-    setAnswers(newAnswers);
+  // ─── Proceed from Brand Gate → Synthesis ────────────────────────────────────
+  const proceedFromBrandGate = () => {
+    const fileNote = brandFiles.length > 0
+      ? ` Brand files uploaded: ${brandFiles.map(f => f.name).join(', ')}.${logoFile ? ` Logo: ${logoFile.name}.` : ''}`
+      : '';
+    const finalAnswers = fileNote
+      ? { ...pendingAnswers, _brandAssets: fileNote }
+      : pendingAnswers;
     setBrandStep('choice');
     setBrandFiles([]);
     setLogoFile(null);
-    advanceQuestion(newAnswers);
+    setShowBrandGate(false);
+    generatePreview(finalAnswers);
   };
 
   const advanceQuestion = (latestAnswers) => {
     const nextIndex = currentQIndex + 1;
     if (nextIndex >= questions.length) {
-      generatePreview(latestAnswers);
+      // Show brand asset gate before synthesis
+      setPendingAnswers(latestAnswers);
+      setShowBrandGate(true);
       return;
     }
     setCurrentQIndex(nextIndex);
@@ -1309,14 +1371,35 @@ export default function App() {
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-8">How It Works</p>
               <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
                 {[
-                  { step: '01', title: 'AI Extracts Your Business Blueprint', body: 'Answer one targeted question at a time. Our AI asks precisely the right questions to understand how your business actually operates — your processes, constraints, goals, and gaps — before generating anything.' },
-                  { step: '02', title: 'Get Your Free Analysis', body: 'Receive a free business intelligence report before committing — opportunity zones mapped to your operations, time-drain areas identified, and a preview of where AI creates the most leverage for your specific business.' },
-                  { step: '03', title: 'Unlock Your Blueprint + AI Instructor', body: 'Get your complete custom blueprint — named AI systems, specific tools, workflow designs, and a Scope of Work — paired with an interactive AI instructor that guides your implementation every step of the way.' },
-                ].map(({ step, title, body }) => (
-                  <div key={step} className="flex flex-col gap-4">
-                    <span className="text-xs font-black text-blue-400 tracking-widest">{step}</span>
-                    <h3 className="text-white font-black text-base uppercase tracking-tight leading-snug">{title}</h3>
-                    <p className="text-slate-300 text-sm leading-relaxed">{body}</p>
+                  {
+                    step: '01',
+                    title: 'Unlock Your Blueprint + AI Instructor',
+                    body: 'Get your complete custom blueprint — named AI systems, specific tools, workflow designs, and a Scope of Work — paired with an interactive AI Instructor that guides your 90-day implementation plan step by step.',
+                    highlight: true,
+                  },
+                  {
+                    step: '02',
+                    title: 'Get Your Free Business Analysis',
+                    body: 'Before you commit, receive a free intelligence report — opportunity zones mapped to your operations, time-drain areas identified, and a preview of exactly where AI creates leverage in your specific business.',
+                  },
+                  {
+                    step: '03',
+                    title: 'Your AI Instructor Extracts the Blueprint',
+                    body: 'Answer one targeted question at a time. The AI Instructor asks precisely the right questions to understand how your business actually operates — your processes, constraints, goals, and gaps — before building anything.',
+                  },
+                ].map(({ step, title, body, highlight }) => (
+                  <div key={step} className={`flex flex-col gap-4 p-5 rounded-xl ${
+                    highlight
+                      ? 'bg-blue-600/5 border border-blue-500/20'
+                      : 'bg-slate-800/20 border border-slate-800/60'
+                  }`}>
+                    <span className={`text-xs font-black tracking-widest ${
+                      highlight ? 'text-blue-400' : 'text-slate-600'
+                    }`}>{step}</span>
+                    <h3 className={`font-black text-base uppercase tracking-tight leading-snug ${
+                      highlight ? 'text-white' : 'text-slate-300'
+                    }`}>{title}</h3>
+                    <p className="text-slate-400 text-sm leading-relaxed">{body}</p>
                   </div>
                 ))}
               </div>
@@ -1429,7 +1512,159 @@ export default function App() {
 
         {/* ── STAGE 1: Interview ── */}
         {stage === 1 && (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full relative">
+
+            {/* ── Brand Asset Gate Interstitial ── */}
+            {showBrandGate && (
+              <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center px-6 py-10 overflow-y-auto">
+                <div className="w-full max-w-lg mx-auto">
+
+                  {/* Header */}
+                  <div className="text-center mb-10">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-3">Before We Begin Analysis</p>
+                    <h2 className="text-2xl font-black text-white mb-3 leading-tight">
+                      Do you have existing<br />brand assets?
+                    </h2>
+                    <p className="text-slate-400 text-sm leading-relaxed">
+                      Upload your brand files now so the AI can reference your actual identity — not build from scratch.
+                    </p>
+                  </div>
+
+                  {/* Step: Choice */}
+                  {brandStep === 'choice' && (
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => setBrandStep('files')}
+                        className="w-full flex items-center gap-4 bg-slate-900 border border-slate-800 rounded-2xl px-5 py-5 text-left hover:border-blue-500/50 hover:bg-slate-800/60 transition-all group"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-blue-600/20 flex items-center justify-center shrink-0 group-hover:bg-blue-600/30 transition-colors">
+                          <CheckCircle size={18} className="text-blue-300" />
+                        </div>
+                        <div>
+                          <p className="text-white font-black text-sm">Yes — I have brand files</p>
+                          <p className="text-slate-500 text-xs mt-0.5">Upload guidelines, style guide, logo, fonts, etc.</p>
+                        </div>
+                      </button>
+                      <button
+                        onClick={proceedFromBrandGate}
+                        className="w-full flex items-center gap-4 bg-slate-900 border border-slate-800 rounded-2xl px-5 py-5 text-left hover:border-slate-600 hover:bg-slate-800/60 transition-all group"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-slate-700/60 flex items-center justify-center shrink-0">
+                          <span className="text-slate-400 font-black text-base">?</span>
+                        </div>
+                        <div>
+                          <p className="text-white font-black text-sm">No — build from my answers</p>
+                          <p className="text-slate-500 text-xs mt-0.5">We'll extract your brand system directly from what you told us.</p>
+                        </div>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Step: Files */}
+                  {brandStep === 'files' && (
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400 mb-4">Upload Brand Files</p>
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); setBrandDragOver(true); }}
+                        onDragLeave={() => setBrandDragOver(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setBrandDragOver(false);
+                          setBrandFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
+                        }}
+                        className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all ${
+                          brandDragOver ? 'border-blue-500 bg-blue-600/10' : 'border-slate-700 hover:border-slate-600'
+                        }`}
+                      >
+                        <p className="text-slate-300 text-sm font-medium mb-1">Drag &amp; drop your brand files here</p>
+                        <p className="text-slate-600 text-xs mb-4">PDF, PNG, JPG, AI, SVG, EPS accepted</p>
+                        <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-colors inline-block">
+                          Browse Files
+                          <input
+                            type="file"
+                            multiple
+                            accept=".pdf,.png,.jpg,.jpeg,.ai,.eps,.svg,.gif,.webp"
+                            className="hidden"
+                            onChange={(e) => setBrandFiles(prev => [...prev, ...Array.from(e.target.files)])}
+                          />
+                        </label>
+                      </div>
+                      {brandFiles.length > 0 && (
+                        <div className="mt-3 space-y-1.5">
+                          {brandFiles.map((f, i) => (
+                            <div key={i} className="flex items-center justify-between text-xs text-slate-300 bg-slate-900 rounded-xl px-4 py-2.5 border border-slate-800">
+                              <span className="truncate mr-2">{f.name}</span>
+                              <button onClick={() => setBrandFiles(prev => prev.filter((_, j) => j !== i))} className="text-slate-600 hover:text-red-400 shrink-0 transition-colors">&times;</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => setBrandStep('logo')}
+                        className="mt-4 w-full bg-blue-600 text-white font-black py-3.5 rounded-xl uppercase tracking-widest text-xs hover:bg-blue-500 transition-all flex items-center justify-center gap-2"
+                      >
+                        Next: Logo <ArrowRight size={14} />
+                      </button>
+                      <button onClick={() => setBrandStep('logo')} className="mt-2 w-full text-center text-slate-600 text-xs hover:text-slate-400 transition-colors">
+                        Skip &mdash; I don&rsquo;t have brand files
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Step: Logo */}
+                  {brandStep === 'logo' && (
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400 mb-4">Upload Your Logo</p>
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); setLogoDragOver(true); }}
+                        onDragLeave={() => setLogoDragOver(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setLogoDragOver(false);
+                          const file = e.dataTransfer.files[0];
+                          if (file) setLogoFile(file);
+                        }}
+                        className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all ${
+                          logoDragOver ? 'border-blue-500 bg-blue-600/10' : logoFile ? 'border-green-500/40 bg-green-500/5' : 'border-slate-700 hover:border-slate-600'
+                        }`}
+                      >
+                        {logoFile ? (
+                          <div>
+                            <p className="text-green-400 text-sm font-black mb-1">{logoFile.name}</p>
+                            <p className="text-slate-500 text-xs mb-3">{(logoFile.size / 1024).toFixed(0)} KB</p>
+                            <button onClick={() => setLogoFile(null)} className="text-slate-600 text-xs hover:text-red-400 transition-colors">Remove</button>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-slate-300 text-sm font-medium mb-1">Drop your logo here</p>
+                            <p className="text-slate-600 text-xs mb-4">PNG, SVG, PDF &mdash; transparent PNG preferred</p>
+                            <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-colors inline-block">
+                              Browse for Logo
+                              <input
+                                type="file"
+                                accept="image/*,.pdf,.ai,.eps,.svg"
+                                className="hidden"
+                                onChange={(e) => { if (e.target.files[0]) setLogoFile(e.target.files[0]); }}
+                              />
+                            </label>
+                          </>
+                        )}
+                      </div>
+                      <button
+                        onClick={proceedFromBrandGate}
+                        className="mt-4 w-full bg-blue-600 text-white font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:bg-blue-500 transition-all flex items-center justify-center gap-2"
+                      >
+                        Begin Analysis <ArrowRight size={14} />
+                      </button>
+                      <button onClick={proceedFromBrandGate} className="mt-2 w-full text-center text-slate-600 text-xs hover:text-slate-400 transition-colors">
+                        Skip &mdash; proceed without logo
+                      </button>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+            )}
             {/* Pipeline Stage Nav Bar */}
             <div className="flex-shrink-0 px-4 md:px-8 pt-5 pb-4 border-b border-slate-800/40">
               <div className="flex items-center justify-between mb-3 max-w-2xl mx-auto w-full">
@@ -1555,155 +1790,7 @@ export default function App() {
 
             {/* Input — normal textarea OR multi-select panel */}
             <div className="flex-shrink-0 px-8 py-6 border-t border-slate-800/50 bg-slate-950/80">
-              {currentQuestion?.id === 25 ? (
-                // ── Brand Assets Upload UI (Q25) ─────────────────────────────
-                <div className="space-y-4">
-                  {brandStep === 'choice' && (
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400 mb-4">Do you have brand assets?</p>
-                      <div className="grid grid-cols-1 gap-3">
-                        <button
-                          onClick={() => setBrandStep('files')}
-                          className="flex items-center gap-4 bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 text-left hover:border-blue-500/50 hover:bg-slate-800/60 transition-all"
-                        >
-                          <div className="w-9 h-9 rounded-xl bg-blue-600/20 flex items-center justify-center shrink-0">
-                            <CheckCircle size={16} className="text-blue-300" />
-                          </div>
-                          <div>
-                            <p className="text-white font-black text-sm">Yes &mdash; I have brand files</p>
-                            <p className="text-slate-500 text-xs mt-0.5">Upload guidelines, style guide, logo, fonts, etc.</p>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => submitBrandAnswer('No — I need your help building my brand system from scratch.')}
-                          className="flex items-center gap-4 bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 text-left hover:border-slate-600 hover:bg-slate-800/60 transition-all"
-                        >
-                          <div className="w-9 h-9 rounded-xl bg-slate-700/60 flex items-center justify-center shrink-0">
-                            <span className="text-slate-400 text-sm font-black">?</span>
-                          </div>
-                          <div>
-                            <p className="text-white font-black text-sm">No &mdash; I need your help</p>
-                            <p className="text-slate-500 text-xs mt-0.5">We&rsquo;ll build your brand system directly from your answers.</p>
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {brandStep === 'files' && (
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400 mb-4">Upload Brand Files</p>
-                      <div
-                        onDragOver={(e) => { e.preventDefault(); setBrandDragOver(true); }}
-                        onDragLeave={() => setBrandDragOver(false)}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          setBrandDragOver(false);
-                          setBrandFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
-                        }}
-                        className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
-                          brandDragOver ? 'border-blue-500 bg-blue-600/10' : 'border-slate-700 hover:border-slate-600'
-                        }`}
-                      >
-                        <p className="text-slate-300 text-sm font-medium mb-1">Drag &amp; drop your brand files here</p>
-                        <p className="text-slate-600 text-xs mb-4">PDF, PNG, JPG, AI, SVG, EPS accepted</p>
-                        <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-colors inline-block">
-                          Browse Files
-                          <input
-                            type="file"
-                            multiple
-                            accept=".pdf,.png,.jpg,.jpeg,.ai,.eps,.svg,.gif,.webp"
-                            className="hidden"
-                            onChange={(e) => setBrandFiles(prev => [...prev, ...Array.from(e.target.files)])}
-                          />
-                        </label>
-                      </div>
-                      {brandFiles.length > 0 && (
-                        <div className="mt-3 space-y-1.5">
-                          {brandFiles.map((f, i) => (
-                            <div key={i} className="flex items-center justify-between text-xs text-slate-300 bg-slate-900 rounded-xl px-4 py-2.5 border border-slate-800">
-                              <span className="truncate mr-2">{f.name}</span>
-                              <button onClick={() => setBrandFiles(prev => prev.filter((_, j) => j !== i))} className="text-slate-600 hover:text-red-400 shrink-0 transition-colors">×</button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <button
-                        onClick={() => setBrandStep('logo')}
-                        className="mt-4 w-full bg-blue-600 text-white font-black py-3.5 rounded-xl uppercase tracking-widest text-xs hover:bg-blue-500 transition-all flex items-center justify-center gap-2"
-                      >
-                        Next: Logo <ArrowRight size={14} />
-                      </button>
-                      <button onClick={() => setBrandStep('logo')} className="mt-2 w-full text-center text-slate-600 text-xs hover:text-slate-400 transition-colors">
-                        Skip &mdash; I don&rsquo;t have brand files
-                      </button>
-                    </div>
-                  )}
-
-                  {brandStep === 'logo' && (
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400 mb-4">Upload Your Logo</p>
-                      <div
-                        onDragOver={(e) => { e.preventDefault(); setLogoDragOver(true); }}
-                        onDragLeave={() => setLogoDragOver(false)}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          setLogoDragOver(false);
-                          const file = e.dataTransfer.files[0];
-                          if (file) setLogoFile(file);
-                        }}
-                        className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
-                          logoDragOver ? 'border-blue-500 bg-blue-600/10' : logoFile ? 'border-green-500/40 bg-green-500/5' : 'border-slate-700 hover:border-slate-600'
-                        }`}
-                      >
-                        {logoFile ? (
-                          <div>
-                            <p className="text-green-400 text-sm font-black mb-1">{logoFile.name}</p>
-                            <p className="text-slate-500 text-xs mb-3">{(logoFile.size / 1024).toFixed(0)} KB</p>
-                            <button onClick={() => setLogoFile(null)} className="text-slate-600 text-xs hover:text-red-400 transition-colors">Remove</button>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-slate-300 text-sm font-medium mb-1">Drop your logo here</p>
-                            <p className="text-slate-600 text-xs mb-4">PNG, SVG, PDF &mdash; transparent PNG preferred</p>
-                            <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-colors inline-block">
-                              Browse for Logo
-                              <input
-                                type="file"
-                                accept="image/*,.pdf,.ai,.eps,.svg"
-                                className="hidden"
-                                onChange={(e) => { if (e.target.files[0]) setLogoFile(e.target.files[0]); }}
-                              />
-                            </label>
-                          </>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 mt-4">
-                        <button
-                          onClick={() => {
-                            const fileList = brandFiles.length > 0 ? ` Brand files: ${brandFiles.map(f => f.name).join(', ')}.` : '';
-                            submitBrandAnswer(`Yes — I have brand assets.${fileList} No logo yet.`);
-                          }}
-                          className="bg-slate-800 text-slate-300 font-black py-3.5 rounded-xl uppercase tracking-widest text-[10px] hover:bg-slate-700 transition-all"
-                        >
-                          No Logo Yet
-                        </button>
-                        <button
-                          onClick={() => {
-                            const fileList = brandFiles.length > 0 ? ` Brand files: ${brandFiles.map(f => f.name).join(', ')}.` : '';
-                            const logoInfo = logoFile ? ` Logo: ${logoFile.name}.` : '';
-                            submitBrandAnswer(`Yes — I have brand assets.${fileList}${logoInfo}`);
-                          }}
-                          disabled={!logoFile}
-                          className="bg-blue-600 text-white font-black py-3.5 rounded-xl uppercase tracking-widest text-[10px] hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                        >
-                          Submit &amp; Continue <ArrowRight size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : currentQuestion?.type === 'multiSelect' ? (
+              {currentQuestion?.type === 'multiSelect' ? (
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400 mb-4">Select all that apply</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 max-h-72 overflow-y-auto pr-1">

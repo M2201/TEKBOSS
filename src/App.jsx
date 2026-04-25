@@ -60,7 +60,7 @@ const STATIC_QUESTIONS = [
 // ─── Brand Wordmark (horizontal SVG — matches logo exactly) ─────────────────
 const BrandWordmark = ({ height = 28, className = '' }) => (
   <svg
-    viewBox="0 0 420 72"
+    viewBox="0 0 382 72"
     height={height}
     style={{ width: 'auto', display: 'block' }}
     xmlns="http://www.w3.org/2000/svg"
@@ -68,11 +68,11 @@ const BrandWordmark = ({ height = 28, className = '' }) => (
     className={className}
   >
     <text y="54" fontFamily="'Barlow', 'Arial Black', Impact, sans-serif" fontWeight="900" fontSize="62">
-      <tspan fill="#FFFFFF">TEK </tspan>
-      <tspan fill="#7BB5DE">BOSS</tspan>
-      <tspan fill="#4CC8C4" fontSize="42">.ai</tspan>
+      <tspan fill="#FFFFFF" textLength="147" lengthAdjust="spacing">TEK </tspan>
+      <tspan fill="#4F86E8" textLength="160" lengthAdjust="spacing">BOSS</tspan>
+      <tspan fill="#4CC8C4" fontSize="42" textLength="75" lengthAdjust="spacing">.ai</tspan>
     </text>
-    <line x1="0" y1="66" x2="420" y2="66" stroke="#4CC8C4" strokeWidth="2.5"/>
+    <line x1="0" y1="66" x2="382" y2="66" stroke="#4CC8C4" strokeWidth="2.5"/>
   </svg>
 );
 

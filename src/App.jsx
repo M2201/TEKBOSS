@@ -57,27 +57,15 @@ const STATIC_QUESTIONS = [
 ];
 
 
-// ─── Brand Wordmark (horizontal SVG — matches new logo) ─────────────────
+// ─── Brand Wordmark (uses real logo PNG from public/) ───────────────────────
  const BrandWordmark = ({ height = 28, className = '' }) => (
-   <svg
-     viewBox="0 0 382 72"
+   <img
+     src="/TEKBOSSLOGO.png"
+     alt="TEK BOSS.ai"
      height={height}
-     style={{ width: 'auto', display: 'block' }}
-     xmlns="http://www.w3.org/2000/svg"
-     aria-label="TEK BOSS.ai"
+     style={{ height, width: 'auto', display: 'block' }}
      className={className}
-   >
-     <text y="54" fontFamily="'Barlow', 'Arial Black', Impact, sans-serif" fontWeight="900" fontSize="62">
-       {/* TEK — white, semi-transparent ghost effect */}
-       <tspan fill="#FFFFFF" fillOpacity="0.38" textLength="147" lengthAdjust="spacing">TEK </tspan>
-       {/* BOSS — vivid cobalt blue */}
-       <tspan fill="#1818E8" textLength="160" lengthAdjust="spacing">BOSS</tspan>
-       {/* .ai — medium gray, slightly lighter weight */}
-       <tspan fill="#8898B0" fontSize="42" textLength="75" lengthAdjust="spacing">.ai</tspan>
-     </text>
-     {/* Underline — thin gray */}
-     <line x1="0" y1="66" x2="382" y2="66" stroke="#6B7A8D" strokeWidth="1.5"/>
-   </svg>
+   />
  );
 
 

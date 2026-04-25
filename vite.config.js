@@ -20,8 +20,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
-          'vendor-pdf': ['jspdf', 'html2canvas'],
-          'vendor-ui': ['lucide-react', 'framer-motion'],
+          'vendor-ui': ['lucide-react'],
         },
       },
     },

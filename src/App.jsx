@@ -57,39 +57,44 @@ const STATIC_QUESTIONS = [
 ];
 
 
-// ─── Brand Wordmark (horizontal SVG — matches logo exactly) ─────────────────
-const BrandWordmark = ({ height = 28, className = '' }) => (
-  <svg
-    viewBox="0 0 382 72"
-    height={height}
-    style={{ width: 'auto', display: 'block' }}
-    xmlns="http://www.w3.org/2000/svg"
-    aria-label="TEK BOSS.ai"
-    className={className}
-  >
-    <text y="54" fontFamily="'Barlow', 'Arial Black', Impact, sans-serif" fontWeight="900" fontSize="62">
-      <tspan fill="#FFFFFF" textLength="147" lengthAdjust="spacing">TEK </tspan>
-      <tspan fill="#4F86E8" textLength="160" lengthAdjust="spacing">BOSS</tspan>
-      <tspan fill="#4CC8C4" fontSize="42" textLength="75" lengthAdjust="spacing">.ai</tspan>
-    </text>
-    <line x1="0" y1="66" x2="382" y2="66" stroke="#4CC8C4" strokeWidth="2.5"/>
-  </svg>
-);
+// ─── Brand Wordmark (horizontal SVG — matches new logo) ─────────────────
+ const BrandWordmark = ({ height = 28, className = '' }) => (
+   <svg
+     viewBox="0 0 382 72"
+     height={height}
+     style={{ width: 'auto', display: 'block' }}
+     xmlns="http://www.w3.org/2000/svg"
+     aria-label="TEK BOSS.ai"
+     className={className}
+   >
+     <text y="54" fontFamily="'Barlow', 'Arial Black', Impact, sans-serif" fontWeight="900" fontSize="62">
+       {/* TEK — white, semi-transparent ghost effect */}
+       <tspan fill="#FFFFFF" fillOpacity="0.38" textLength="147" lengthAdjust="spacing">TEK </tspan>
+       {/* BOSS — vivid cobalt blue */}
+       <tspan fill="#1818E8" textLength="160" lengthAdjust="spacing">BOSS</tspan>
+       {/* .ai — medium gray, slightly lighter weight */}
+       <tspan fill="#8898B0" fontSize="42" textLength="75" lengthAdjust="spacing">.ai</tspan>
+     </text>
+     {/* Underline — thin gray */}
+     <line x1="0" y1="66" x2="382" y2="66" stroke="#6B7A8D" strokeWidth="1.5"/>
+   </svg>
+ );
+
 
 // ─── Brand Icon Mark (compact TB monogram — for chat bubbles & tiny slots) ──
 const BrandLogo = ({ size = 'md', className = '' }) => {
   const dim = { xs: 20, sm: 32, md: 44, lg: 64, xl: 80, hero: 112 }[size] || 44;
-  const fs  = { xs: 10, sm: 15, md: 20, lg: 28, xl: 36, hero: 50 }[size] || 20;
   return (
     <svg width={dim} height={dim} viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg"
       className={`rounded-xl ${className}`} aria-label="TEK BOSS.ai">
-      <rect width="44" height="44" rx="9" fill="#0F1E3D"/>
+      <rect width="44" height="44" rx="9" fill="#0A0F2A"/>
       <text x="22" y="30" textAnchor="middle"
         fontFamily="'Barlow', 'Arial Black', Impact, sans-serif"
-        fontWeight="900" fontSize="20" fill="#4CC8C4">TB</text>
+        fontWeight="900" fontSize="20" fill="#1818E8">TB</text>
     </svg>
   );
 };
+
 
 
 // ─── Markdown renderer ─────────────────────────────────────────────────────────

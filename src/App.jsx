@@ -175,13 +175,13 @@ const Sidebar = ({ stage, onStartFresh }) => {
     <div className="w-72 bg-slate-950 text-slate-400 p-6 flex flex-col h-full border-r border-slate-800/50 flex-shrink-0">
       <div className="flex flex-col gap-1 mb-12">
         <BrandWordmark height={28} />
-        <p className="text-[9px] font-bold tracking-[0.25em] text-[#4CC8C4]/70 mt-1 uppercase">AI Blueprint</p>
+        <p className="text-[9px] font-bold tracking-[0.25em] text-blue-400/70 mt-1 uppercase">AI Blueprint</p>
       </div>
       <nav className="flex-1 space-y-1">
         {navItems.map(item => (
           <div key={item.id} className={`flex items-center justify-between p-3.5 rounded-xl transition-all
             ${stage === item.id
-              ? 'bg-[#4CC8C4]/10 text-[#4CC8C4] border border-[#4CC8C4]/20'
+              ? 'bg-blue-600/10 text-blue-400 border border-blue-600/20'
               : stage > item.id ? 'text-slate-500' : 'text-slate-700'
             }`}>
             <div className="flex items-center gap-3">
@@ -241,7 +241,7 @@ const AgentBubble = ({ msg }) => (
   <div className="flex items-start gap-3 max-w-2xl">
     <div className={`w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center mt-1
       ${msg.isCheckpoint ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-600/20'
-        : msg.isCompletion ? 'bg-[#4CC8C4]/15 text-[#4CC8C4] border border-[#4CC8C4]/25'
+        : msg.isCompletion ? 'bg-blue-600/20 text-blue-400 border border-blue-600/20'
           : 'bg-slate-800 text-blue-400 border border-slate-700'}`}>
       {msg.isCheckpoint ? <CheckCircle size={15} /> : msg.isCompletion ? <Sparkles size={15} /> : (
         <BrandLogo size="xs" />
@@ -254,7 +254,7 @@ const AgentBubble = ({ msg }) => (
         </p>
       )}
       {msg.isFollowUp && (
-        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#4CC8C4]/60 mb-1">Follow-up</p>
+        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-400/60 mb-1">Follow-up</p>
       )}
       <div className={`rounded-2xl rounded-tl-sm px-5 py-4 text-sm font-medium leading-relaxed
         ${msg.isCheckpoint ? 'bg-emerald-950/40 border border-emerald-800/30 text-emerald-200'
@@ -1154,7 +1154,7 @@ export default function App() {
                   <span className="text-xs text-slate-400 font-medium hidden sm:inline">{user.email}</span>
                   <button
                     onClick={() => setShowDisclaimer(false)}
-                    className="bg-[#4CC8C4] text-[#0F1E3D] font-black px-6 py-2.5 rounded-xl hover:bg-[#3AB8B4] uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-[#4CC8C4]/20"
+                    className="bg-blue-600 text-white font-black px-6 py-2.5 rounded-xl hover:bg-blue-500 uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-blue-900/30"
                   >
                     Continue →
                   </button>
@@ -1169,7 +1169,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => { setAuthMode('register'); setShowAuthModal(true); setAuthError(null); }}
-                    className="bg-[#4CC8C4] text-[#0F1E3D] font-black px-6 py-2.5 rounded-xl hover:bg-[#3AB8B4] uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-[#4CC8C4]/20"
+                    className="bg-blue-600 text-white font-black px-6 py-2.5 rounded-xl hover:bg-blue-500 uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-blue-900/30"
                   >
                     Start Free →
                   </button>
@@ -1220,12 +1220,15 @@ export default function App() {
               )}
               <button
                 onClick={() => setVideoModalOpen(true)}
-                className="inline-flex items-center gap-4 bg-slate-900/80 border border-green-500/30 rounded-2xl px-8 py-5 mb-6 hover:border-green-400/50 hover:bg-slate-900 transition-all group cursor-pointer"
+                className="inline-flex items-center gap-4 bg-slate-900/80 border border-green-500/30 rounded-2xl px-8 py-5 mb-6 hover:border-green-400/60 hover:bg-slate-900 transition-all group cursor-pointer"
               >
-                <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
-                  <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-green-400 ml-1" />
+                <div className="relative w-10 h-10 flex-shrink-0">
+                  <div className="absolute inset-0 bg-green-500/30 rounded-full animate-ping" />
+                  <div className="relative w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center group-hover:bg-green-500/40 transition-colors">
+                    <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-green-400 ml-1" />
+                  </div>
                 </div>
-                <span className="text-xs font-black uppercase tracking-[0.2em] text-white">Watch the Explainer Video</span>
+                <span className="text-sm font-black uppercase tracking-[0.2em] text-white">Watch the Explainer Video</span>
               </button>
 
               {/* Primary CTA */}
@@ -1252,89 +1255,74 @@ export default function App() {
                 )}
               </div>
 
-              {/* Read More Toggle */}
-              <button
-                onClick={() => {
-                  const el = document.getElementById('learn-more');
-                  if (el && landingScrollRef.current) {
-                    landingScrollRef.current.scrollTo({ top: el.offsetTop, behavior: 'smooth' });
-                  } else {
-                    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
-                }}
-                className="mt-8 text-slate-600 hover:text-slate-400 text-[10px] font-bold uppercase tracking-[0.25em] transition-colors flex items-center gap-2 mx-auto"
-              >
-                Learn more below
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-              </button>
             </div>
           </div>
 
           {/* Learn More — Expanded Section */}
-          <div id="learn-more" className="max-w-3xl mx-auto px-6 pb-12 space-y-6">
+          <div className="max-w-3xl mx-auto px-6 pb-14 space-y-8">
 
             {/* How It Works */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#4CC8C4] mb-6">How It Works</p>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 sm:p-10">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-8">How It Works</p>
+              <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
                 {[
-                  { step: '01', title: '24-Question Interview', body: 'Answer one question at a time in a conversational format. No forms. No jargon. Just a direct dialogue designed to surface how your business actually operates.' },
+                  { step: '01', title: '24-Question Interview', body: 'Answer one question at a time in a conversational format. No forms, no jargon — just a direct dialogue designed to surface how your business actually operates.' },
                   { step: '02', title: 'Free Preview Report', body: 'Before you pay anything, our AI produces a business health analysis — opportunity zones, risk flags, and a read on where AI can move the needle fastest for you.' },
                   { step: '03', title: 'Your Full AI Blueprint', body: 'After unlocking, you receive a complete package: named AI systems, tool decisions, workflow designs, a Scope of Work, and a 90-day execution roadmap.' },
                 ].map(({ step, title, body }) => (
-                  <div key={step} className="flex flex-col gap-3">
-                    <span className="text-[10px] font-black text-[#4CC8C4] tracking-widest">{step}</span>
-                    <h3 className="text-white font-black text-sm uppercase tracking-tight leading-snug">{title}</h3>
-                    <p className="text-slate-400 text-xs leading-relaxed font-medium">{body}</p>
+                  <div key={step} className="flex flex-col gap-4">
+                    <span className="text-xs font-black text-blue-400 tracking-widest">{step}</span>
+                    <h3 className="text-white font-black text-base uppercase tracking-tight leading-snug">{title}</h3>
+                    <p className="text-slate-300 text-sm leading-relaxed">{body}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* What's Delivered */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#4CC8C4] mb-6">What's Delivered</p>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 sm:p-10">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-8">What's Delivered</p>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 {[
                   { icon: '📋', label: 'Intake Summary', desc: 'A structured record of your goals, constraints, tool stack, and brand voice — the source document for everything else.' },
                   { icon: '📄', label: 'Scope of Work (SOW)', desc: 'A professional SOW ready to hand to a developer or AI agency. Defines what gets built, how, and to what standard.' },
                   { icon: '⚙️', label: 'AI Build Spec', desc: 'A machine-readable file with your named AI systems, integration priorities, and phased rollout — built for technical handoff.' },
-                  { icon: '🗺️', label: '90-Day Playbook', desc: 'Your step-by-step roadmap with named systems, specific tools, and sequenced actions. A built-in coach keeps you on track.' },
+                  { icon: '🗺️', label: '90-Day Playbook', desc: 'Your step-by-step roadmap with named systems, specific tools, and sequenced actions.' },
                 ].map(({ icon, label, desc }) => (
-                  <div key={label} className="flex gap-4 p-4 bg-slate-800/40 rounded-xl border border-slate-700/50">
-                    <span className="text-xl shrink-0">{icon}</span>
+                  <div key={label} className="flex gap-4 p-5 bg-slate-800/40 rounded-xl border border-slate-700/50">
+                    <span className="text-2xl shrink-0">{icon}</span>
                     <div>
-                      <p className="text-white text-xs font-black uppercase tracking-tight mb-1">{label}</p>
-                      <p className="text-slate-400 text-[11px] leading-relaxed">{desc}</p>
+                      <p className="text-white text-sm font-black uppercase tracking-tight mb-2">{label}</p>
+                      <p className="text-slate-300 text-sm leading-relaxed">{desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
-              <p className="text-slate-600 text-[10px] mt-5 leading-relaxed">
+              <p className="text-slate-500 text-xs mt-6 leading-relaxed">
                 All four files are automatically delivered to a private Google Drive folder — no manual downloads required.
               </p>
             </div>
 
             {/* Who It's For */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#4CC8C4] mb-6">Who This Is For</p>
-              <div className="space-y-3">
+            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 sm:p-10">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-8">Who This Is For</p>
+              <div className="space-y-4">
                 {[
                   "Founders and operators who know AI is important but don't know where to start",
                   "Service businesses tired of generic advice that doesn't account for how they actually work",
                   "Teams evaluating AI tools who need a structured decision framework — not more demos",
                   "Anyone who has tried AI tools and found the output too generic to use professionally",
                 ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#4CC8C4] shrink-0 mt-1.5" />
-                    <p className="text-slate-400 text-xs font-medium leading-relaxed">{item}</p>
+                  <div key={i} className="flex items-start gap-4">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-1.5" />
+                    <p className="text-slate-300 text-sm leading-relaxed">{item}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Disclaimer */}
-            <p className="text-slate-600 text-[10px] leading-relaxed italic text-center max-w-lg mx-auto pb-2">
+            <p className="text-slate-600 text-xs leading-relaxed italic text-center max-w-lg mx-auto pb-2">
               Strategic projections are algorithmic estimates based on provided data. Final authority rests with the User.
             </p>
 
@@ -1383,8 +1371,8 @@ export default function App() {
                     <React.Fragment key={s.id}>
                       <div className="flex flex-col items-center gap-1">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black transition-all duration-500
-                          ${ isComplete ? 'bg-[#4CC8C4] text-[#0F1E3D] shadow-lg shadow-[#4CC8C4]/30'
-                            : isActive  ? 'bg-[#3A5F8A] text-white ring-2 ring-[#4CC8C4]/40 shadow-lg shadow-[#3A5F8A]/40'
+                          ${ isComplete ? 'bg-blue-500 text-white shadow-lg shadow-blue-900/40'
+                            : isActive  ? 'bg-[#3A5F8A] text-white ring-2 ring-blue-400/40 shadow-lg shadow-[#3A5F8A]/40'
                             : 'bg-slate-800 text-slate-600 border border-slate-700'}`}>
                           {isComplete ? <CheckCircle size={12} /> : s.id}
                         </div>
@@ -1480,9 +1468,9 @@ export default function App() {
                     </div>
                     <div className="bg-slate-900 border border-slate-800 rounded-2xl rounded-tl-sm px-5 py-4">
                       <div className="flex gap-1 items-center h-4">
-                        <div className="w-2 h-2 bg-[#4CC8C4] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 bg-[#4CC8C4] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 bg-[#4CC8C4] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                       </div>
                     </div>
                   </div>
@@ -1939,9 +1927,9 @@ export default function App() {
                     </div>
                     <div className="bg-slate-900 border border-slate-800 rounded-2xl rounded-tl-sm px-5 py-4">
                       <div className="flex gap-1 items-center h-4">
-                        <div className="w-2 h-2 bg-[#4CC8C4] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 bg-[#4CC8C4] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 bg-[#4CC8C4] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                       </div>
                     </div>
                   </div>

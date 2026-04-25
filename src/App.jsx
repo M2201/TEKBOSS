@@ -1267,11 +1267,17 @@ export default function App() {
               <div className="absolute top-4 left-6 text-blue-500/15 text-8xl font-black leading-none select-none">&ldquo;</div>
               <blockquote className="relative z-10">
                 <p className="text-slate-200 text-base md:text-lg leading-relaxed font-medium mb-6">
-                  AI is making it easier than ever to build powerful systems inside your business. But doing it wrong is just as easy. Too many business owners waste real time and money on tools that don&rsquo;t fit, automations built for someone else&rsquo;s problems, and advice that was never specific to them. I built TEK BOSS for the entrepreneur who is ready to stop guessing &mdash; to get a real blueprint extracted from their own business, showing exactly where AI belongs and where it doesn&rsquo;t. Whether you want to lead your own implementation or have our team build it for you, it starts with a blueprint built around <em>you</em>.
+                  I&rsquo;ve spent over two decades designing systems where every component works together to create something seamless&mdash;something that feels intentional, refined, and effortless to use.
+                </p>
+                <p className="text-slate-200 text-base md:text-lg leading-relaxed font-medium mb-6">
+                  AI should be no different. It should operate as an extension of your business&mdash;producing work that&rsquo;s on-brand, consistent, and indistinguishable from something created by your team. Not generic. Not obvious. Not disconnected.
+                </p>
+                <p className="text-slate-200 text-base md:text-lg leading-relaxed font-medium mb-6">
+                  TEK BOSS approaches AI the right way. It analyzes how your business actually operates and designs a system where each piece of AI has a role&mdash;working together to create something cohesive, elevated, and aligned with your story and brand.
                 </p>
                 <footer className="flex items-center gap-3">
                   <div className="w-8 h-px bg-blue-500/50" />
-                  <cite className="text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] not-italic">The Founder, TEK BOSS.ai</cite>
+                  <cite className="text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] not-italic">Mandle Rousseau &mdash; Visionary</cite>
                 </footer>
               </blockquote>
             </div>

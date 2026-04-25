@@ -148,11 +148,25 @@ function ConstraintsList({ items }) {
 
 function NamedSystemsTeaser({ systems, brandAccent }) {
   const accent = brandAccent || '#1E6FE5';
+  const [flippedCards, setFlippedCards] = useState(new Set());
+
+  const toggleFlip = (i) => {
+    setFlippedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
+  };
+
+  const scrollToPricing = (e) => {
+    e?.stopPropagation();
+    document.getElementById('pricing-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   if (!systems?.length) return null;
   return (
     <div className="mb-8">
-
-      {/* ── Section header ── */}
+      {/* Section header */}
       <div className="flex items-center justify-between mb-1">
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400">
           Your Operating Systems — Engineered by AI
@@ -160,48 +174,103 @@ function NamedSystemsTeaser({ systems, brandAccent }) {
       </div>
       <p className="text-xs text-slate-500 mb-5 leading-relaxed">
         The AI has identified {systems.length} custom-built systems for your business.
-        Full architecture, tools, and playbooks unlock after you move forward.
+        Tap a card to preview what’s inside &mdash; full architecture and playbooks unlock when you move forward.
       </p>
 
-      {/* ── Locked system cards ── */}
+      {/* Flippable locked cards */}
       <div className="space-y-3">
-        {systems.map((sys, i) => (
-          <div key={i} className="bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 relative overflow-hidden transition-colors group">
-            {/* Brand accent bar */}
-            <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl" style={{ background: accent }} />
-
-            <div className="flex items-start justify-between gap-4 pl-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-white font-black text-sm tracking-tight mb-1">{sys.name}</p>
-                <p className="text-slate-400 text-xs leading-relaxed">{sys.hook}</p>
-              </div>
-
-              {/* Clearly visible lock badge */}
-              <div className="shrink-0 flex flex-col items-center gap-1">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center ring-1 ring-amber-500/10 group-hover:ring-amber-500/25 transition-all">
-                  <Lock size={14} className="text-amber-400" />
+        {systems.map((sys, i) => {
+          const isFlipped = flippedCards.has(i);
+          return (
+            <div
+              key={i}
+              style={{ perspective: '1000px', cursor: 'pointer' }}
+              onClick={() => toggleFlip(i)}
+            >
+              <div
+                style={{
+                  position: 'relative',
+                  transformStyle: 'preserve-3d',
+                  transition: 'transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                  minHeight: '148px',
+                }}
+              >
+                {/* ── FRONT ── */}
+                <div
+                  style={{ backfaceVisibility: 'hidden', position: 'absolute', inset: 0 }}
+                  className="bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 overflow-hidden transition-colors"
+                >
+                  <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl" style={{ background: accent }} />
+                  <div className="flex items-start justify-between gap-4 pl-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-black text-sm tracking-tight mb-1">{sys.name}</p>
+                      <p className="text-slate-400 text-xs leading-relaxed">{sys.hook}</p>
+                      <p className="text-slate-600 text-[10px] mt-2.5 font-bold uppercase tracking-wider">Tap to preview &rarr;</p>
+                    </div>
+                    {/* UNLOCK badge — scrolls to pricing */}
+                    <div
+                      className="shrink-0 flex flex-col items-center gap-1"
+                      onClick={scrollToPricing}
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center hover:bg-amber-500/20 transition-colors ring-1 ring-amber-500/10">
+                        <Lock size={14} className="text-amber-400" />
+                      </div>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-amber-400 hover:text-amber-200 transition-colors">Unlock</span>
+                    </div>
+                  </div>
+                  {/* Ghost lines */}
+                  <div className="mt-3 pl-3 space-y-1.5 select-none pointer-events-none">
+                    <div className="h-2 rounded-full bg-slate-800/70 w-4/5" />
+                    <div className="h-2 rounded-full bg-slate-800/40 w-3/5" />
+                  </div>
                 </div>
-                <span className="text-[8px] font-black uppercase tracking-widest text-amber-500/60">Locked</span>
+
+                {/* ── BACK ── */}
+                <div
+                  style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', position: 'absolute', inset: 0 }}
+                  className="bg-gradient-to-br from-blue-950/60 to-slate-900 border border-blue-500/30 rounded-2xl p-5 overflow-hidden"
+                >
+                  <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl bg-blue-500" />
+                  <div className="pl-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-3">What’s Inside</p>
+                    <div className="space-y-1.5 mb-4">
+                      {[
+                        'Custom tool stack & integrations',
+                        'Step-by-step automation workflow',
+                        'Prompt templates with your brand voice',
+                        '90-day build & launch timeline',
+                      ].map((item, j) => (
+                        <div key={j} className="flex items-center gap-2">
+                          <div className="w-1 h-1 rounded-full bg-blue-400 shrink-0" />
+                          <span className="text-slate-300 text-xs">{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={scrollToPricing}
+                      className="w-full text-[10px] font-black uppercase tracking-widest bg-amber-500 hover:bg-amber-400 text-slate-900 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1"
+                    >
+                      Unlock Now <ArrowRight size={11} />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-
-            {/* Ghost content — blurred placeholder lines to hint at depth */}
-            <div className="mt-3 pl-3 space-y-1.5 select-none pointer-events-none">
-              <div className="h-2 rounded-full bg-slate-800/70 w-4/5" />
-              <div className="h-2 rounded-full bg-slate-800/40 w-3/5" />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* ── Unlock prompt ── */}
-      <div className="mt-4 flex items-center gap-3 bg-amber-500/5 border border-amber-500/20 rounded-xl px-4 py-3">
+      {/* Bottom unlock prompt — clickable */}
+      <div
+        className="mt-4 flex items-center gap-3 bg-amber-500/5 border border-amber-500/20 rounded-xl px-4 py-3 cursor-pointer hover:bg-amber-500/10 transition-colors"
+        onClick={scrollToPricing}
+      >
         <Lock size={13} className="text-amber-400 shrink-0" />
         <p className="text-xs text-amber-300/80 leading-relaxed">
           <span className="font-bold text-amber-300">These systems are yours</span> — the tools, the automation logic, and the 90-day build order unlock the moment you move forward.
         </p>
       </div>
-
     </div>
   );
 }
@@ -446,7 +515,7 @@ export default function PreviewReport({
         />
 
         {/* Pricing CTA */}
-        <div className="mt-12">
+        <div id="pricing-section" className="mt-12">
           <div className="max-w-xl mx-auto">
             <div className="bg-gradient-to-b from-blue-900/40 to-slate-900 border rounded-[2.5rem] p-10 text-center relative shadow-2xl overflow-hidden"
               style={{ borderColor: `${brandAccent}40` }}>

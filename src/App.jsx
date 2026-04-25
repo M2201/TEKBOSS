@@ -265,6 +265,12 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [multiSelectedOptions, setMultiSelectedOptions] = useState([]);
+  // Brand upload state (Q25)
+  const [brandStep, setBrandStep] = useState('choice');  // 'choice' | 'files' | 'logo'
+  const [brandFiles, setBrandFiles] = useState([]);
+  const [logoFile, setLogoFile] = useState(null);
+  const [brandDragOver, setBrandDragOver] = useState(false);
+  const [logoDragOver, setLogoDragOver] = useState(false);
   const [waitingForFollowUp, setWaitingForFollowUp] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [previewData, setPreviewData] = useState(null);
@@ -679,7 +685,7 @@ export default function App() {
 
   const handleMultiSelectSubmit = async () => {
     if (!currentQuestion || multiSelectedOptions.length === 0) return;
-    finalTranscriptRef.current = ''; // reset transcript ref
+    finalTranscriptRef.current = '';
     const selectedLabels = currentQuestion.options
       .filter(o => multiSelectedOptions.includes(o.value))
       .map(o => o.label)
@@ -688,6 +694,18 @@ export default function App() {
     setMessages(prev => [...prev, { role: 'user', text: answerText }]);
     const newAnswers = { ...answers, [currentQuestion.id]: answerText };
     setAnswers(newAnswers);
+    advanceQuestion(newAnswers);
+  };
+
+  // ─── Brand Upload Submit (Q25) ──────────────────────────────────────────────
+  const submitBrandAnswer = (answerText) => {
+    if (!currentQuestion) return;
+    setMessages(prev => [...prev, { role: 'user', text: answerText }]);
+    const newAnswers = { ...answers, [currentQuestion.id]: answerText };
+    setAnswers(newAnswers);
+    setBrandStep('choice');
+    setBrandFiles([]);
+    setLogoFile(null);
     advanceQuestion(newAnswers);
   };
 
@@ -1537,7 +1555,155 @@ export default function App() {
 
             {/* Input — normal textarea OR multi-select panel */}
             <div className="flex-shrink-0 px-8 py-6 border-t border-slate-800/50 bg-slate-950/80">
-              {currentQuestion?.type === 'multiSelect' ? (
+              {currentQuestion?.id === 25 ? (
+                // ── Brand Assets Upload UI (Q25) ─────────────────────────────
+                <div className="space-y-4">
+                  {brandStep === 'choice' && (
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400 mb-4">Do you have brand assets?</p>
+                      <div className="grid grid-cols-1 gap-3">
+                        <button
+                          onClick={() => setBrandStep('files')}
+                          className="flex items-center gap-4 bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 text-left hover:border-blue-500/50 hover:bg-slate-800/60 transition-all"
+                        >
+                          <div className="w-9 h-9 rounded-xl bg-blue-600/20 flex items-center justify-center shrink-0">
+                            <CheckCircle size={16} className="text-blue-300" />
+                          </div>
+                          <div>
+                            <p className="text-white font-black text-sm">Yes &mdash; I have brand files</p>
+                            <p className="text-slate-500 text-xs mt-0.5">Upload guidelines, style guide, logo, fonts, etc.</p>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => submitBrandAnswer('No — I need your help building my brand system from scratch.')}
+                          className="flex items-center gap-4 bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 text-left hover:border-slate-600 hover:bg-slate-800/60 transition-all"
+                        >
+                          <div className="w-9 h-9 rounded-xl bg-slate-700/60 flex items-center justify-center shrink-0">
+                            <span className="text-slate-400 text-sm font-black">?</span>
+                          </div>
+                          <div>
+                            <p className="text-white font-black text-sm">No &mdash; I need your help</p>
+                            <p className="text-slate-500 text-xs mt-0.5">We&rsquo;ll build your brand system directly from your answers.</p>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {brandStep === 'files' && (
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400 mb-4">Upload Brand Files</p>
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); setBrandDragOver(true); }}
+                        onDragLeave={() => setBrandDragOver(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setBrandDragOver(false);
+                          setBrandFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
+                        }}
+                        className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
+                          brandDragOver ? 'border-blue-500 bg-blue-600/10' : 'border-slate-700 hover:border-slate-600'
+                        }`}
+                      >
+                        <p className="text-slate-300 text-sm font-medium mb-1">Drag &amp; drop your brand files here</p>
+                        <p className="text-slate-600 text-xs mb-4">PDF, PNG, JPG, AI, SVG, EPS accepted</p>
+                        <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-colors inline-block">
+                          Browse Files
+                          <input
+                            type="file"
+                            multiple
+                            accept=".pdf,.png,.jpg,.jpeg,.ai,.eps,.svg,.gif,.webp"
+                            className="hidden"
+                            onChange={(e) => setBrandFiles(prev => [...prev, ...Array.from(e.target.files)])}
+                          />
+                        </label>
+                      </div>
+                      {brandFiles.length > 0 && (
+                        <div className="mt-3 space-y-1.5">
+                          {brandFiles.map((f, i) => (
+                            <div key={i} className="flex items-center justify-between text-xs text-slate-300 bg-slate-900 rounded-xl px-4 py-2.5 border border-slate-800">
+                              <span className="truncate mr-2">{f.name}</span>
+                              <button onClick={() => setBrandFiles(prev => prev.filter((_, j) => j !== i))} className="text-slate-600 hover:text-red-400 shrink-0 transition-colors">×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => setBrandStep('logo')}
+                        className="mt-4 w-full bg-blue-600 text-white font-black py-3.5 rounded-xl uppercase tracking-widest text-xs hover:bg-blue-500 transition-all flex items-center justify-center gap-2"
+                      >
+                        Next: Logo <ArrowRight size={14} />
+                      </button>
+                      <button onClick={() => setBrandStep('logo')} className="mt-2 w-full text-center text-slate-600 text-xs hover:text-slate-400 transition-colors">
+                        Skip &mdash; I don&rsquo;t have brand files
+                      </button>
+                    </div>
+                  )}
+
+                  {brandStep === 'logo' && (
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400 mb-4">Upload Your Logo</p>
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); setLogoDragOver(true); }}
+                        onDragLeave={() => setLogoDragOver(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setLogoDragOver(false);
+                          const file = e.dataTransfer.files[0];
+                          if (file) setLogoFile(file);
+                        }}
+                        className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
+                          logoDragOver ? 'border-blue-500 bg-blue-600/10' : logoFile ? 'border-green-500/40 bg-green-500/5' : 'border-slate-700 hover:border-slate-600'
+                        }`}
+                      >
+                        {logoFile ? (
+                          <div>
+                            <p className="text-green-400 text-sm font-black mb-1">{logoFile.name}</p>
+                            <p className="text-slate-500 text-xs mb-3">{(logoFile.size / 1024).toFixed(0)} KB</p>
+                            <button onClick={() => setLogoFile(null)} className="text-slate-600 text-xs hover:text-red-400 transition-colors">Remove</button>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-slate-300 text-sm font-medium mb-1">Drop your logo here</p>
+                            <p className="text-slate-600 text-xs mb-4">PNG, SVG, PDF &mdash; transparent PNG preferred</p>
+                            <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-colors inline-block">
+                              Browse for Logo
+                              <input
+                                type="file"
+                                accept="image/*,.pdf,.ai,.eps,.svg"
+                                className="hidden"
+                                onChange={(e) => { if (e.target.files[0]) setLogoFile(e.target.files[0]); }}
+                              />
+                            </label>
+                          </>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 mt-4">
+                        <button
+                          onClick={() => {
+                            const fileList = brandFiles.length > 0 ? ` Brand files: ${brandFiles.map(f => f.name).join(', ')}.` : '';
+                            submitBrandAnswer(`Yes — I have brand assets.${fileList} No logo yet.`);
+                          }}
+                          className="bg-slate-800 text-slate-300 font-black py-3.5 rounded-xl uppercase tracking-widest text-[10px] hover:bg-slate-700 transition-all"
+                        >
+                          No Logo Yet
+                        </button>
+                        <button
+                          onClick={() => {
+                            const fileList = brandFiles.length > 0 ? ` Brand files: ${brandFiles.map(f => f.name).join(', ')}.` : '';
+                            const logoInfo = logoFile ? ` Logo: ${logoFile.name}.` : '';
+                            submitBrandAnswer(`Yes — I have brand assets.${fileList}${logoInfo}`);
+                          }}
+                          disabled={!logoFile}
+                          className="bg-blue-600 text-white font-black py-3.5 rounded-xl uppercase tracking-widest text-[10px] hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                        >
+                          Submit &amp; Continue <ArrowRight size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : currentQuestion?.type === 'multiSelect' ? (
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400 mb-4">Select all that apply</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 max-h-72 overflow-y-auto pr-1">

@@ -164,7 +164,7 @@ const Sidebar = ({ stage, onStartFresh }) => {
     { id: 5, label: 'Build-Out Coach',     icon: Bot,      locked: stage < 5 },
   ];
   return (
-    <div className="w-72 bg-slate-950 text-slate-400 p-6 flex flex-col h-full border-r border-slate-800/50 flex-shrink-0">
+    <div className="hidden md:flex w-72 bg-slate-950 text-slate-400 p-6 flex-col h-full border-r border-slate-800/50 flex-shrink-0">
       <div className="mb-8">
         <BrandWordmark width={210} />
       </div>
@@ -426,11 +426,16 @@ export default function App() {
     } finally { setSpecDownloading(false); }
   };
 
-  const [authMode, setAuthMode] = useState('register'); // 'register' | 'login'
+  const [authMode, setAuthMode] = useState('register'); // 'register' | 'login' | 'forgot' | 'reset' | 'change-password'
   const [authForm, setAuthForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
   const [authError, setAuthError] = useState(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+  const [resetToken, setResetToken] = useState(null);
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [changePasswordForm, setChangePasswordForm] = useState({ currentPassword: '', newPassword: '', confirmNew: '' });
 
   // ─── Subscription state ───────────────────────────────────────────────────────
   const [subscription, setSubscription] = useState({ active: false, status: 'none', daysRemaining: 0, isWarningPeriod: false });
@@ -589,6 +594,17 @@ export default function App() {
   useEffect(() => {
     if (user) fetchSubscriptionStatus();
   }, [user, paymentVerified]);
+
+  // ─── Handle password reset token in URL ────────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('reset_token');
+    if (token) {
+      setResetToken(token);
+      setAuthMode('reset');
+      setShowAuthModal(true);
+    }
+  }, []);
 
   // ─── Restore state after Stripe redirect ─────────────────────────────────
   useEffect(() => {
@@ -1164,6 +1180,82 @@ export default function App() {
     }
   };
 
+  // ─── Forgot / Reset Password handlers ──────────────────────────────────────
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthLoading(true);
+    try {
+      await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      setForgotSent(true);
+    } catch {
+      setAuthError('Something went wrong. Please try again.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setAuthError(null);
+    if (resetNewPassword.length < 8) { setAuthError('Password must be at least 8 characters.'); return; }
+    setAuthLoading(true);
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ token: resetToken, newPassword: resetNewPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Reset failed.');
+      setUser(data.user);
+      setShowAuthModal(false);
+      setShowDisclaimer(false);
+      // Clear token from URL
+      window.history.replaceState({}, '', '/');
+    } catch (err) {
+      setAuthError(err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setAuthError(null);
+    if (changePasswordForm.newPassword !== changePasswordForm.confirmNew) {
+      setAuthError('New passwords do not match.'); return;
+    }
+    if (changePasswordForm.newPassword.length < 8) {
+      setAuthError('New password must be at least 8 characters.'); return;
+    }
+    setAuthLoading(true);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          currentPassword: changePasswordForm.currentPassword,
+          newPassword: changePasswordForm.newPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Password change failed.');
+      setShowAuthModal(false);
+      setChangePasswordForm({ currentPassword: '', newPassword: '', confirmNew: '' });
+    } catch (err) {
+      setAuthError(err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
@@ -1667,8 +1759,20 @@ export default function App() {
                 </div>
               </div>
             )}
+            {/* Mobile-only brand bar — hidden on desktop where sidebar shows the logo */}
+            <div className="flex md:hidden items-center justify-between px-4 pt-3 pb-2 border-b border-slate-800/40 flex-shrink-0">
+              <BrandWordmark width={120} />
+              {user && (
+                <button
+                  onClick={() => { setAuthMode('change-password'); setShowAuthModal(true); setAuthError(null); }}
+                  className="text-[10px] text-slate-500 hover:text-blue-400 font-bold uppercase tracking-widest transition-colors"
+                >
+                  {user.email?.split('@')[0]}
+                </button>
+              )}
+            </div>
             {/* Pipeline Stage Nav Bar */}
-            <div className="flex-shrink-0 px-4 md:px-8 pt-5 pb-4 border-b border-slate-800/40">
+            <div className="flex-shrink-0 px-4 md:px-8 pt-4 pb-4 border-b border-slate-800/40">
               <div className="flex items-center justify-between mb-3 max-w-2xl mx-auto w-full">
                 {[
                   { id: 1, label: 'Interview',   stageNum: 1 },
@@ -1733,7 +1837,7 @@ export default function App() {
             </div>
 
             {/* Chat messages */}
-            <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
+            <div className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 md:py-6 space-y-4">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {msg.role === 'agent' && (
@@ -1791,7 +1895,7 @@ export default function App() {
             </div>
 
             {/* Input — normal textarea OR multi-select panel */}
-            <div className="flex-shrink-0 px-8 py-6 border-t border-slate-800/50 bg-slate-950/80">
+            <div className="flex-shrink-0 px-3 sm:px-6 md:px-8 py-4 md:py-6 border-t border-slate-800/50 bg-slate-950/80">
               {currentQuestion?.type === 'multiSelect' ? (
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400 mb-4">Select all that apply</p>
@@ -2250,7 +2354,7 @@ export default function App() {
             </div>
 
             {/* Assistant Input */}
-            <div className="flex-shrink-0 px-8 py-6 border-t border-slate-800/50 bg-slate-950/80">
+            <div className="flex-shrink-0 px-3 sm:px-6 md:px-8 py-4 md:py-6 border-t border-slate-800/50 bg-slate-950/80">
               <div className="flex gap-3 items-end">
                 <textarea
                   ref={assistantInputRef}
@@ -2309,11 +2413,13 @@ export default function App() {
                 <BrandWordmark width={220} />
               </div>
               <h3 className="text-2xl font-black text-white uppercase tracking-tight">
-                {authMode === 'register' ? 'Create Your Account' : 'Welcome Back'}
+                {authMode === 'register' ? 'Create Your Account' : authMode === 'change-password' ? 'Change Password' : authMode === 'forgot' ? 'Reset Password' : authMode === 'reset' ? 'Set New Password' : 'Welcome Back'}
               </h3>
               <p className="text-slate-500 text-xs mt-2 font-medium">
                 {authMode === 'register'
                   ? 'Save your progress, secure your blueprint, and access it anytime.'
+                  : authMode === 'change-password'
+                  ? `Logged in as ${user?.email}`
                   : 'Sign in to resume your analysis or view your blueprint.'}
               </p>
             </div>
@@ -2401,15 +2507,139 @@ export default function App() {
               </button>
             </form>
 
-            {/* Toggle */}
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => { setAuthMode(m => m === 'register' ? 'login' : 'register'); setAuthError(null); }}
-                className="text-xs text-slate-500 hover:text-blue-400 font-medium transition-colors"
-              >
-                {authMode === 'register' ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
-              </button>
-            </div>
+            {/* Forgot password link — login mode only */}
+            {authMode === 'login' && (
+              <div className="mt-3 text-center">
+                <button
+                  onClick={() => { setAuthMode('forgot'); setAuthError(null); setForgotSent(false); }}
+                  className="text-xs text-slate-600 hover:text-blue-400 font-medium transition-colors"
+                >
+                  Forgot your password?
+                </button>
+              </div>
+            )}
+
+            {/* Toggle register ↔ login */}
+            {(authMode === 'register' || authMode === 'login') && (
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => { setAuthMode(m => m === 'register' ? 'login' : 'register'); setAuthError(null); }}
+                  className="text-xs text-slate-500 hover:text-blue-400 font-medium transition-colors"
+                >
+                  {authMode === 'register' ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
+                </button>
+              </div>
+            )}
+
+            {/* ── Forgot Password screen ── */}
+            {authMode === 'forgot' && (
+              <div className="mt-6">
+                {forgotSent ? (
+                  <div className="text-center py-6">
+                    <CheckCircle size={40} className="text-emerald-400 mx-auto mb-4" />
+                    <h4 className="text-white font-black text-lg mb-2">Check your inbox</h4>
+                    <p className="text-slate-400 text-sm">If that email is registered, a reset link is on its way. Check your spam folder too.</p>
+                    <button onClick={() => { setAuthMode('login'); setForgotSent(false); }} className="mt-6 text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors">Back to sign in</button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block mb-1.5">Your Email</label>
+                      <input
+                        type="email" required value={forgotEmail}
+                        onChange={e => setForgotEmail(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600 transition-colors"
+                        placeholder="you@company.com"
+                      />
+                    </div>
+                    {authError && (
+                      <div className="bg-red-950/50 border border-red-800/30 rounded-xl px-4 py-3 flex items-center gap-2">
+                        <AlertTriangle size={14} className="text-red-400 flex-shrink-0" />
+                        <p className="text-xs text-red-300 font-medium">{authError}</p>
+                      </div>
+                    )}
+                    <button type="submit" disabled={authLoading} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-500 uppercase tracking-widest text-xs disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                      {authLoading ? <><RefreshCw size={14} className="animate-spin" /> Sending...</> : <>Send Reset Link <ArrowRight size={14} /></>}
+                    </button>
+                    <div className="text-center">
+                      <button type="button" onClick={() => { setAuthMode('login'); setAuthError(null); }} className="text-xs text-slate-500 hover:text-blue-400 font-medium transition-colors">Back to sign in</button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+
+            {/* ── Reset Password screen ── */}
+            {authMode === 'reset' && (
+              <form onSubmit={handleResetPassword} className="mt-6 space-y-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block mb-1.5">New Password</label>
+                  <input
+                    type={showPassword ? 'text' : 'password'} required minLength={8}
+                    value={resetNewPassword} onChange={e => setResetNewPassword(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600 transition-colors"
+                    placeholder="Min. 8 characters"
+                  />
+                </div>
+                {authError && (
+                  <div className="bg-red-950/50 border border-red-800/30 rounded-xl px-4 py-3 flex items-center gap-2">
+                    <AlertTriangle size={14} className="text-red-400 flex-shrink-0" />
+                    <p className="text-xs text-red-300 font-medium">{authError}</p>
+                  </div>
+                )}
+                <button type="submit" disabled={authLoading} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-500 uppercase tracking-widest text-xs disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                  {authLoading ? <><RefreshCw size={14} className="animate-spin" /> Saving...</> : <>Set New Password <ArrowRight size={14} /></>}
+                </button>
+              </form>
+            )}
+
+            {/* ── Change Password screen ── */}
+            {authMode === 'change-password' && (
+              <form onSubmit={handleChangePassword} className="mt-2 space-y-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block mb-1.5">Current Password</label>
+                  <input
+                    type={showPassword ? 'text' : 'password'} required
+                    value={changePasswordForm.currentPassword}
+                    onChange={e => setChangePasswordForm(p => ({ ...p, currentPassword: e.target.value }))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600 transition-colors"
+                    placeholder="Your current password"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block mb-1.5">New Password</label>
+                  <input
+                    type={showPassword ? 'text' : 'password'} required minLength={8}
+                    value={changePasswordForm.newPassword}
+                    onChange={e => setChangePasswordForm(p => ({ ...p, newPassword: e.target.value }))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600 transition-colors"
+                    placeholder="Min. 8 characters"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block mb-1.5">Confirm New Password</label>
+                  <input
+                    type={showPassword ? 'text' : 'password'} required minLength={8}
+                    value={changePasswordForm.confirmNew}
+                    onChange={e => setChangePasswordForm(p => ({ ...p, confirmNew: e.target.value }))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600 transition-colors"
+                    placeholder="Re-enter new password"
+                  />
+                </div>
+                {authError && (
+                  <div className="bg-red-950/50 border border-red-800/30 rounded-xl px-4 py-3 flex items-center gap-2">
+                    <AlertTriangle size={14} className="text-red-400 flex-shrink-0" />
+                    <p className="text-xs text-red-300 font-medium">{authError}</p>
+                  </div>
+                )}
+                <button type="submit" disabled={authLoading} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-500 uppercase tracking-widest text-xs disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                  {authLoading ? <><RefreshCw size={14} className="animate-spin" /> Saving...</> : <>Update Password <ArrowRight size={14} /></>}
+                </button>
+                <div className="text-center">
+                  <button type="button" onClick={() => setShowAuthModal(false)} className="text-xs text-slate-500 hover:text-slate-300 font-medium transition-colors">Cancel</button>
+                </div>
+              </form>
+            )}
 
             {/* Trust Signals */}
             {authMode === 'register' && (

@@ -1177,10 +1177,11 @@ export default function App() {
                 <BrandWordmark width={320} />
               </div>
 
-              {/* Badge — coach positioning */}
-              <div className="inline-flex items-center gap-2.5 bg-blue-600/10 border border-blue-500/25 rounded-full px-5 py-2.5 mb-10">
-                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
-                <span className="text-blue-300 text-[11px] font-bold uppercase tracking-[0.25em]">Your AI Business Coach &mdash; Ready Now</span>
+              {/* Eyebrow — clean, no animation */}
+              <div className="flex items-center justify-center gap-4 mb-10">
+                <div className="h-px w-12 bg-gradient-to-r from-transparent to-blue-500/50" />
+                <span className="text-blue-400 text-[10px] font-black uppercase tracking-[0.35em] whitespace-nowrap">Blueprint + 90-Day AI Implementation Coach</span>
+                <div className="h-px w-12 bg-gradient-to-l from-transparent to-blue-500/50" />
               </div>
 
               <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.05] tracking-tighter mb-8">
@@ -1189,7 +1190,7 @@ export default function App() {
                 <span className="text-blue-400/80">in Your Business.</span>
               </h1>
               <p className="text-slate-300 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed font-medium">
-                In 15 minutes, your personal AI coach interviews your business, identifies exactly where AI saves you time and money, and delivers a complete custom blueprint — not a template, not generic advice. Built for <em>your</em> business.
+                In 15 minutes, your AI coach interviews your business and builds a fully custom blueprint — then stays with you for 90 days, guiding every step of your implementation. You own the plan. We make sure you know exactly how to execute it.
               </p>
 
               {/* Video Button + Modal */}
@@ -1284,12 +1285,26 @@ export default function App() {
             {/* What's Delivered */}
             <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 sm:p-10">
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-8">What's Delivered</p>
+
+              {/* Featured deliverable: 90-Day AI Coach */}
+              <div className="flex gap-4 p-5 bg-blue-600/8 rounded-xl border border-blue-500/30 mb-6">
+                <span className="text-2xl shrink-0">🤖</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <p className="text-white text-sm font-black uppercase tracking-tight">90-Day AI Implementation Coach</p>
+                    <span className="text-[9px] font-black uppercase tracking-widest bg-blue-500/20 text-blue-300 px-2.5 py-1 rounded-full">Included</span>
+                  </div>
+                  <p className="text-slate-300 text-sm leading-relaxed">After your blueprint is delivered, your AI coach stays with you for 90 days — walking you through each phase of your plan, answering questions, and keeping you on track until implementation is complete. This is the engine that turns strategy into execution.</p>
+                </div>
+              </div>
+
+              {/* Supporting documents */}
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 {[
                   { icon: '📋', label: 'Intake Summary', desc: 'A structured record of your goals, constraints, tool stack, and brand voice — the source document for everything else.' },
                   { icon: '📄', label: 'Scope of Work (SOW)', desc: 'A professional SOW ready to hand to a developer or AI agency. Defines what gets built, how, and to what standard.' },
                   { icon: '⚙️', label: 'AI Build Spec', desc: 'A machine-readable file with your named AI systems, integration priorities, and phased rollout — built for technical handoff.' },
-                  { icon: '🗺️', label: '90-Day Playbook', desc: 'Your step-by-step roadmap with named systems, specific tools, and sequenced actions.' },
+                  { icon: '🗺️', label: '90-Day Action Roadmap', desc: 'Your week-by-week implementation roadmap with named systems, specific tools, and sequenced actions.' },
                 ].map(({ icon, label, desc }) => (
                   <div key={label} className="flex gap-4 p-5 bg-slate-800/40 rounded-xl border border-slate-700/50">
                     <span className="text-2xl shrink-0">{icon}</span>
@@ -1300,8 +1315,16 @@ export default function App() {
                   </div>
                 ))}
               </div>
-              <p className="text-slate-500 text-xs mt-6 leading-relaxed">
-                All four files are automatically delivered to a private Google Drive folder — no manual downloads required.
+
+              {/* Not done for you — expectation setting */}
+              <div className="mt-6 p-5 border border-slate-700/50 bg-slate-800/20 rounded-xl">
+                <p className="text-slate-400 text-sm leading-relaxed">
+                  <span className="text-white font-black">What TEK BOSS is not:</span> We don’t build AI systems for you. We give you the complete strategy, the technical specs, and 90 days of AI-guided coaching to implement it yourself — or hand it to your team or any developer ready to execute.
+                </p>
+              </div>
+
+              <p className="text-slate-500 text-xs mt-5 leading-relaxed">
+                All documents are automatically delivered to a private Google Drive folder — no downloads required.
               </p>
             </div>
 

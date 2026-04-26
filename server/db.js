@@ -52,10 +52,10 @@ if (process.env.VERCEL) {
             CREATE TABLE IF NOT EXISTS blueprints (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
-                answers TEXT NOT NULL, -- JSON string
+                answers TEXT NOT NULL,
                 executive_summary TEXT,
                 enablement_strategy TEXT,
-                validated_data TEXT, -- JSON string from guardrails
+                validated_data TEXT,
                 preview_report TEXT,
                 pricing_tier TEXT,
                 diy_playbook TEXT,
@@ -70,7 +70,7 @@ if (process.env.VERCEL) {
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
                 blueprint_id TEXT NOT NULL,
-                messages TEXT NOT NULL DEFAULT '[]', -- JSON array of {role, content, timestamp}
+                messages TEXT NOT NULL DEFAULT '[]',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY(blueprint_id) REFERENCES blueprints(id) ON DELETE CASCADE
@@ -80,14 +80,40 @@ if (process.env.VERCEL) {
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
                 blueprint_id TEXT,
-                system_context TEXT, -- JSON with relevant systems and business context
-                status TEXT DEFAULT 'pending', -- pending, contacted, in_progress, completed
+                system_context TEXT,
+                status TEXT DEFAULT 'pending',
                 notes TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY(blueprint_id) REFERENCES blueprints(id) ON DELETE SET NULL
             );
+
+            CREATE TABLE IF NOT EXISTS ai_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                stage TEXT NOT NULL,
+                user_id TEXT,
+                blueprint_id TEXT,
+                tokens_used INTEGER,
+                latency_ms INTEGER,
+                output_length INTEGER,
+                has_sow_split INTEGER,
+                named_systems_count INTEGER,
+                error TEXT,
+                metadata TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS coach_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                blueprint_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
         `);
+
 
         // ─── Safe column additions for existing databases ─────────────────────
         const safeAddColumn = (table, column, type) => {

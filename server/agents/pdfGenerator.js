@@ -713,7 +713,7 @@ export function generateBlueprintPdf(pdfData) {
     );
     doc.moveDown(0.5);
     doc.font('Helvetica-Bold').fontSize(10).fillColor(COLORS.blue)
-      .text('tekboss-production.up.railway.app', { align: 'center' });
+      .text('tekboss.ai', { align: 'center' });
 
     doc.end();
   });

@@ -449,11 +449,13 @@ export default function App() {
   const finalTranscriptRef = useRef('');     // reset per-question, no need to stop recognition
   const resultBoundaryRef = useRef(0);       // cumulative results index — ignore anything before this
   const lastResultsLengthRef = useRef(0);    // tracks latest event.results.length for boundary updates
+  const userStoppedRef = useRef(false);      // true when user explicitly stopped — suppress auto-restart
   const landingScrollRef = useRef(null);
 
   // ─── Voice input state ───────────────────────────────────────────────
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
+  const [micError, setMicError] = useState(null); // user-visible mic error message
 
   // Detect speech support on mount
   useEffect(() => {
@@ -461,7 +463,8 @@ export default function App() {
     if (SpeechRecognition) setVoiceSupported(true);
   }, []);
 
-  const stopListening = () => {
+  const stopListening = (intentional = true) => {
+    userStoppedRef.current = intentional;
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch { /* ignore */ }
       recognitionRef.current = null;
@@ -469,45 +472,54 @@ export default function App() {
     setIsListening(false);
   };
 
-  const toggleListening = () => {
+  const startRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
-    if (isListening) {
-      stopListening();
-      return;
-    }
-
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;       // Stay open across pauses AND question advances
-    recognition.interimResults = true;   // Stream text in real-time
+    recognition.continuous = true;
+    recognition.interimResults = true;
     recognition.lang = 'en-US';
 
-    // Use a ref so we can reset between questions without killing the session
-    finalTranscriptRef.current = '';
-    setInputValue('');
+    recognition.onstart = () => {
+      setIsListening(true);
+      setMicError(null);
+    };
 
-    recognition.onstart = () => setIsListening(true);
-
+    // Bug fix #4 & #5: auto-restart when Chrome times out (not when user intentionally stopped)
     recognition.onend = () => {
       setIsListening(false);
       recognitionRef.current = null;
-    };
-
-    recognition.onerror = (event) => {
-      if (event.error !== 'no-speech') {
-        stopListening();
+      if (!userStoppedRef.current) {
+        // Chrome timed out after silence — restart transparently
+        setTimeout(() => {
+          if (!userStoppedRef.current) startRecognition();
+        }, 300);
       }
     };
 
+    // Bug fix #1, #2, #3: user-visible error messages for each failure type
+    recognition.onerror = (event) => {
+      if (event.error === 'no-speech') return; // harmless timeout — onend will auto-restart
+      userStoppedRef.current = true; // stop auto-restart on real errors
+      stopListening(true);
+      if (event.error === 'not-allowed') {
+        setMicError('Microphone access was denied. Allow it in your browser settings and try again.');
+      } else if (event.error === 'audio-capture') {
+        setMicError('No microphone detected. Connect a mic and try again.');
+      } else if (event.error === 'network') {
+        setMicError('Voice recognition needs an internet connection. Check your network and try again.');
+      } else {
+        setMicError(`Mic error: ${event.error}. Try refreshing the page.`);
+      }
+    };
+
+    // Bug fix #6: guard against onresult firing after we've nulled the ref
     recognition.onresult = (event) => {
+      if (!recognitionRef.current) return; // already stopped — discard stale results
       let interimTranscript = '';
       lastResultsLengthRef.current = event.results.length;
-
-      // Start from whichever is newer: the event's first new result, or our question boundary
-      // This ensures pending final results from the PREVIOUS answer are silently skipped
       const startIdx = Math.max(event.resultIndex, resultBoundaryRef.current);
-
       for (let i = startIdx; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
@@ -516,12 +528,28 @@ export default function App() {
           interimTranscript += result[0].transcript;
         }
       }
-
       setInputValue((finalTranscriptRef.current + interimTranscript).trim());
     };
 
     recognitionRef.current = recognition;
+    userStoppedRef.current = false;
     recognition.start();
+  };
+
+  const toggleListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (isListening) {
+      stopListening(true);
+      return;
+    }
+
+    // Clear previous error and transcript before a new session
+    setMicError(null);
+    finalTranscriptRef.current = '';
+    setInputValue('');
+    startRecognition();
   };
   // ──────────────────────────────────────────────────
 
@@ -1946,7 +1974,12 @@ export default function App() {
               ) : (
                 // Normal textarea input
                 <>
-                  {isListening && (
+                  {micError && (
+                    <div className="flex items-center gap-2 mb-2 px-1">
+                      <span className="text-[11px] text-amber-400">⚠️ {micError}</span>
+                    </div>
+                  )}
+                  {isListening && !micError && (
                     <div className="flex items-center gap-2 mb-2 px-1">
                       <div className="w-2 h-2 bg-red-500 rounded-full animate-mic-pulse" />
                       <span className="text-[10px] text-red-400 font-bold uppercase tracking-[0.2em]">Listening… tap mic to stop</span>
@@ -1964,12 +1997,13 @@ export default function App() {
                         // Stop mic the moment the user starts typing — prevents transcript
                         // from overwriting manual corrections
                         if (isListening && !e.metaKey && !e.ctrlKey && !e.altKey) {
-                          stopListening();
+                          stopListening(true);
                         }
                         handleKeyDown(e);
                       }}
-                      onMouseDown={() => { if (isListening) stopListening(); }}
+                      onMouseDown={() => { if (isListening) stopListening(true); }}
                       rows={2}
+
                     />
                     {voiceSupported && (
                       <button

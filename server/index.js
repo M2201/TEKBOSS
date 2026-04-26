@@ -31,10 +31,14 @@ import { runFollowUpGenerator } from './agents/followUpGenerator.js';
 import { runBrandDnaGenerator } from './agents/brandDnaGenerator.js';
 import { runMarketScout } from './agents/marketScout.js';
 import { runNoiseFilter } from './agents/noiseFilter.js';
+import { runGrowthForecaster } from './agents/growthForecaster.js';
 import { generateBlueprintPdf } from './agents/pdfGenerator.js';
 import { uploadBlueprintToDrive, deliverBlueprintPackage, isDriveConfigured } from './agents/driveUploader.js';
+import { logAiCall } from './agents/aiLogger.js';
+import { selectToolsWithLlm } from './knowledge/llmToolSelector.js';
 import authRouter, { requireStrictAuth, requireAuth } from './auth.js';
 import db from './db.js';
+
 
 const app = express();
 const PORT = process.env.PORT || 3005;
@@ -157,11 +161,25 @@ app.post('/api/generate-preview', async (req, res) => {
         if (marketIntel) console.log('✅ Market Scout complete');
         if (roiData) console.log('✅ Noise Filter complete');
 
-        await delay(2000);
+        await delay(1500);
 
-        // Stage 4: Generate Preview Report
+        // Stage 3.6: Growth Forecaster — synthesizes 3.5 outputs into a phased roadmap
+        // Runs after 3.5 so it can consume marketIntel and roiData
+        console.log('📈 Stage 3.6: Growth Forecaster building roadmap...');
+        let growthData = null;
+        try {
+            growthData = await runGrowthForecaster(API_KEY, executiveSummary, strategyText, validatedData, marketIntel, roiData);
+            if (growthData && !growthData.error) console.log('✅ Growth Forecaster complete');
+            else console.warn('⚠️  Growth Forecaster returned fallback');
+        } catch (gfErr) {
+            console.warn('⚠️  Growth Forecaster failed (non-fatal):', gfErr.message);
+        }
+
+        await delay(1000);
+
+        // Stage 4: Generate Preview Report (now receives roiData for accurate stat.value)
         console.log('📊 Stage 4: Preview Report generating...');
-        const previewReport = await runPreviewReportGenerator(API_KEY, executiveSummary, strategyText, validatedData);
+        const previewReport = await runPreviewReportGenerator(API_KEY, executiveSummary, strategyText, validatedData, roiData);
 
         console.log('\n✅ PREVIEW GENERATION COMPLETE\n');
 
@@ -172,9 +190,10 @@ app.post('/api/generate-preview', async (req, res) => {
                 executiveSummary,
                 enablementStrategy: strategyText,
                 validatedData,
-                brandDna: brandDna || null,
+                brandDna:    brandDna    || null,
                 marketIntel: marketIntel || null,
-                roiData: roiData || null,
+                roiData:     roiData     || null,
+                growthData:  growthData  || null,
             },
             generatedAt: new Date().toISOString(),
         });
@@ -190,7 +209,7 @@ app.post('/api/generate-preview', async (req, res) => {
 // Stage 5: Takes pre-validated data → generates full Orchestration Playbook
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/generate-blueprint', async (req, res) => {
-    const { executiveSummary, enablementStrategy, validatedData, brandDna, marketIntel, roiData } = req.body;
+    const { executiveSummary, enablementStrategy, validatedData, brandDna, marketIntel, roiData, growthData } = req.body;
 
     if (!executiveSummary || !enablementStrategy) {
         return res.status(400).json({ error: 'Missing required data for blueprint generation.' });
@@ -211,17 +230,21 @@ app.post('/api/generate-blueprint', async (req, res) => {
             API_KEY,
             executiveSummary,
             enablementStrategy,
-            validatedData || {}
+            validatedData || {},
+            marketIntel   || null,
+            roiData       || null,
+            growthData    || null
         );
 
         console.log('\n✅ BLUEPRINT COMPLETE\n');
 
         return res.json({
-            diyPlaybook: playbookData.diyPlaybook,
-            sowPlaybook: playbookData.sowPlaybook,
-            brandDna:    brandDna    || null,
-            marketIntel: marketIntel || null,
-            roiData:     roiData     || null,
+            diyPlaybook:  playbookData.diyPlaybook,
+            sowPlaybook:  playbookData.sowPlaybook,
+            _warning:     playbookData._warning || null,
+            brandDna:     brandDna    || null,
+            marketIntel:  marketIntel || null,
+            roiData:      roiData     || null,
             generatedAt: new Date().toISOString(),
         });
 
@@ -439,7 +462,9 @@ app.post('/api/assistant', async (req, res) => {
                 if (bp) {
                     const validatedData = bp.validated_data ? JSON.parse(bp.validated_data) : {};
                     blueprintContext = {
-                        businessName: validatedData.brandFoundation?.missionStatement?.split(' ')[0] || 'Your Business',
+                        businessName: validatedData.businessName || 'Your Business',
+                        validated_data: validatedData,
+                        diy_playbook: bp.diy_playbook || '',
                         systems: validatedData.namedSystems || [],
                         goals: validatedData.opportunityZones || [],
                         brandVoice: validatedData.brandFoundation?.emotionalTone?.join(', ') || '',
@@ -564,21 +589,21 @@ app.post('/api/blueprints', requireStrictAuth, (req, res) => {
             setImmediate(async () => {
                 try {
                     // Generate Statement of Work PDF
+                    const vd = validatedData
+                        ? (typeof validatedData === 'string' ? JSON.parse(validatedData) : validatedData)
+                        : null;
                     const pdfBuffer = await generateBlueprintPdf({
                         businessName:  bizName,
                         previewReport: previewReportData,
                         diyPlaybook:   diyPlaybook || '',
-                        brandDna:      null,
-                        marketIntel:   null,
-                        roiData:       null,
-                        namedSystems:  [],
+                        brandDna:      brandDna      || null,
+                        marketIntel:   marketIntel   || null,
+                        roiData:       roiData        || null,
+                        namedSystems:  vd?.namedSystems || [],
                         generatedAt:   new Date().toISOString(),
                     });
 
-                    // Build Spec JSON
-                    const vd = validatedData
-                        ? (typeof validatedData === 'string' ? JSON.parse(validatedData) : validatedData)
-                        : null;
+                    // Build Spec JSON (vd already parsed above)
                     const specJson = vd ? buildSpecJson(vd, bizName) : null;
 
                     // Deliver full package → customer subfolder in Drive
@@ -658,6 +683,58 @@ app.get('/api/blueprints/:id', requireStrictAuth, (req, res) => {
     } catch (err) {
         console.error('Error fetching blueprint:', err);
         res.status(500).json({ error: 'Failed to fetch blueprint.' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN — AI Observability Logs
+// Navigate to: GET /api/admin/logs  (add header: x-admin-secret: YOUR_ADMIN_SECRET)
+// Shows: per-stage token usage, latency, success rates, recent errors
+// ─────────────────────────────────────────────────────────────────────────────
+app.get('/api/admin/logs', (req, res) => {
+    const secret = req.headers['x-admin-secret'];
+    if (!secret || secret !== process.env.ADMIN_SECRET) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+        // Summary stats per stage
+        const stageStats = db.prepare(`
+            SELECT
+                stage,
+                COUNT(*) as total_calls,
+                SUM(CASE WHEN error IS NULL THEN 1 ELSE 0 END) as successes,
+                ROUND(AVG(CASE WHEN error IS NULL THEN latency_ms END)) as avg_latency_ms,
+                ROUND(AVG(CASE WHEN error IS NULL THEN tokens_used END)) as avg_tokens,
+                SUM(CASE WHEN has_sow_split = 1 THEN 1 ELSE 0 END) as sow_splits_succeeded,
+                ROUND(AVG(CASE WHEN error IS NULL THEN output_length END)) as avg_output_length
+            FROM ai_logs
+            GROUP BY stage
+            ORDER BY total_calls DESC
+        `).all();
+
+        // Recent 20 logs
+        const recent = db.prepare(`
+            SELECT id, stage, user_id, tokens_used, latency_ms, output_length,
+                   has_sow_split, named_systems_count, error, metadata, created_at
+            FROM ai_logs
+            ORDER BY created_at DESC
+            LIMIT 20
+        `).all();
+
+        // Top errors
+        const topErrors = db.prepare(`
+            SELECT stage, error, COUNT(*) as occurrences
+            FROM ai_logs
+            WHERE error IS NOT NULL
+            GROUP BY stage, error
+            ORDER BY occurrences DESC
+            LIMIT 10
+        `).all();
+
+        res.json({ stageStats, recentLogs: recent, topErrors });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 

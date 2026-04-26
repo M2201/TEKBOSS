@@ -1,28 +1,28 @@
 /**
  * THE GROWTH FORECASTER — Strategic Roadmap Agent
- * Uses Gemini 2.0 Flash (no grounding needed)
- * Implements the Pivot Protocol: Functional Logic
+ * Synthesizes all pipeline data into a phased 90-day roadmap with revenue projections.
+ * Runs AFTER Stage 3.5 (brandDna, marketIntel, roiData) so it can consume their outputs.
  */
 import { GoogleGenAI } from '@google/genai';
 import { GROWTH_FORECASTER_PROMPT, buildGrowthForecasterContext } from './prompts.js';
 
 const FALLBACK = {
-    executiveSummary: "Analysis could not be completed.",
-    projectedRevenueImpact: "$0",
-    projectedTimeSaved: "0 hours",
+    executiveSummary: "Growth roadmap analysis could not be completed.",
+    projectedRevenueImpact: { conservative: "Analysis pending", optimistic: "Analysis pending", keyAssumption: "" },
+    projectedTimeSaved: "Analysis pending",
     phases: [
-        { name: "Foundation", days: "1-30", objective: "Pending analysis", milestones: [], phaseOutcome: "" },
-        { name: "Systemation", days: "31-60", objective: "Pending analysis", milestones: [], phaseOutcome: "" },
-        { name: "Dominance", days: "61-90", objective: "Pending analysis", milestones: [], phaseOutcome: "" }
+        { phase: 1, name: "Foundation", duration: "Days 1-30", focus: "Pending analysis", keyActions: [], successMetric: "", namedSystem: "" },
+        { phase: 2, name: "Activation", duration: "Days 31-60", focus: "Pending analysis", keyActions: [], successMetric: "", namedSystem: "" },
+        { phase: 3, name: "Optimization", duration: "Days 61-90", focus: "Pending analysis", keyActions: [], successMetric: "", namedSystem: "" }
     ],
     toolStack: [],
-    competitiveEdge: ""
+    competitiveEdge: "",
+    criticalRisk: ""
 };
 
-export async function runGrowthForecaster(apiKey, answers, marketScoutReport, noiseFilterReport) {
+export async function runGrowthForecaster(apiKey, executiveSummary, enablementStrategy, validatedData, marketIntel, noiseFilterData) {
     const ai = new GoogleGenAI({ apiKey });
-
-    const userMessage = buildGrowthForecasterContext(answers, marketScoutReport, noiseFilterReport);
+    const userMessage = buildGrowthForecasterContext(executiveSummary, enablementStrategy, validatedData, marketIntel, noiseFilterData);
 
     try {
         const response = await ai.models.generateContent({
@@ -30,14 +30,14 @@ export async function runGrowthForecaster(apiKey, answers, marketScoutReport, no
             contents: [{ role: 'user', parts: [{ text: userMessage }] }],
             config: {
                 systemInstruction: GROWTH_FORECASTER_PROMPT,
-                temperature: 0.6,
+                temperature: 0.5,
                 maxOutputTokens: 8192,
             },
         });
 
         const text = response.text.trim();
-        const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
-        const parsed = JSON.parse(jsonMatch[1].trim());
+        const jsonText = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
+        const parsed = JSON.parse(jsonText);
 
         console.log('✅ Growth Forecaster complete');
         return parsed;

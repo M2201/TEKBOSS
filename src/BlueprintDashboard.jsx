@@ -7,8 +7,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   CheckCircle2, Circle, ChevronRight, ChevronDown, Download,
   Zap, BarChart3, Globe, TrendingUp, Target, Layers, Calendar,
-  FileText, Star, ArrowRight, Bot, CalendarPlus, X,
+  FileText, Star, ArrowRight, Bot, CalendarPlus, X, MessageSquare,
 } from 'lucide-react';
+import InstructorPanel from './InstructorPanel';
 
 
 // ─── Coin reward animation + sound ───────────────────────────────────────────
@@ -316,6 +317,8 @@ export default function BlueprintDashboard({
   const [tasks, setTasks]               = useState([]);
   const [progress, setProgress]         = useState({ total_tasks: 0, done_tasks: 0 });
   const [loadingTasks, setLoadingTasks] = useState(true);
+  const [instructorOpen, setInstructorOpen] = useState(false);
+  const blueprintId = blueprint?.blueprintId || blueprint?.id || null;
   const [calendarStatus, setCalendarStatus] = useState({ connected: false, configured: false });
   const [subStatus, setSubStatus] = useState({ active: true, status: 'trialing', daysRemaining: 60 });
   const [coins, setCoins]               = useState([]);
@@ -542,7 +545,7 @@ export default function BlueprintDashboard({
               {pdfDownloading ? 'Generating…' : 'Download PDF'}
             </button>
             <button
-              onClick={onLaunchInstructor}
+              onClick={() => setInstructorOpen(true)}
               id="blueprint-launch-instructor"
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-white"
               style={{ backgroundColor: 'var(--brand-primary, #3b82f6)' }}
@@ -675,7 +678,7 @@ export default function BlueprintDashboard({
             <h3 className="text-xl font-black uppercase tracking-tight mb-2">Your AI Instructor is ready</h3>
             <p className="text-white/70 text-sm mb-5">Ask questions, get implementation help, and get walked through your tasks — all grounded in YOUR blueprint.</p>
             <button
-              onClick={onLaunchInstructor}
+              onClick={() => setInstructorOpen(true)}
               className="bg-white font-black px-6 py-3 rounded-xl text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white/90 transition-all"
               style={{ color: 'var(--brand-primary, #2563eb)' }}
             >
@@ -684,6 +687,26 @@ export default function BlueprintDashboard({
           </div>
         </div>
       </div>
+
+      {/* ── Floating AI Instructor Button ── */}
+      {blueprintId && (
+        <button
+          onClick={() => setInstructorOpen(true)}
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-5 py-3.5 rounded-2xl shadow-2xl text-white font-black text-xs uppercase tracking-widest transition-all hover:scale-105 active:scale-95"
+          style={{ background: 'linear-gradient(135deg, var(--brand-primary, #2563eb), var(--brand-secondary, #4f46e5))', boxShadow: '0 8px 32px rgba(37,99,235,0.4)' }}>
+          <MessageSquare size={16} />
+          Ask AI Tutor
+        </button>
+      )}
+
+      {/* ── AI Instructor Panel ── */}
+      <InstructorPanel
+        isOpen={instructorOpen}
+        onClose={() => setInstructorOpen(false)}
+        blueprintId={blueprintId}
+        tasks={tasks}
+        subStatus={subStatus}
+      />
     </>
   );
 }

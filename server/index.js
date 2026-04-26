@@ -44,6 +44,7 @@ import {
 import { recordDailyMetrics, scheduleDailyMetrics } from './metricsRecorder.js';
 import { checkDbHealth, scheduleDbMonitor } from './dbMonitor.js';
 import { scheduleLifecycleChecks, runLifecycleChecks } from './subscriptionLifecycle.js';
+import { runInstructor } from './agents/instructorAgent.js';
 import authRouter, { requireStrictAuth, requireAuth } from './auth.js';
 import db from './db.js';
 
@@ -499,6 +500,133 @@ app.post('/api/assistant', async (req, res) => {
     } catch (err) {
         console.error('💥 Assistant error:', err);
         return res.status(500).json({ error: 'Assistant failed: ' + err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI INSTRUCTOR — Phase 3 authenticated, subscription-gated, DB-persisted chat
+// GET  /api/instructor/history      — load past messages for a blueprint
+// GET  /api/instructor/first-message — generate opening message (first session)
+// POST /api/instructor              — send a message, get a response
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Check subscription access for Instructor
+function requireInstructorAccess(req, res, next) {
+    const user = db.prepare('SELECT subscription_status, subscription_ends_at FROM users WHERE id = ?').get(req.user?.id);
+    if (!user) return res.status(403).json({ error: 'User not found.' });
+    const status = user.subscription_status || 'none';
+    const endsAt = user.subscription_ends_at ? new Date(user.subscription_ends_at) : null;
+    const isActive = (status === 'trialing' || status === 'active') && (!endsAt || endsAt > new Date());
+    if (!isActive) {
+        return res.status(403).json({
+            error: 'Instructor access requires an active subscription.',
+            expired: true,
+            status,
+        });
+    }
+    next();
+}
+
+// GET /api/instructor/history?blueprintId=xxx
+app.get('/api/instructor/history', requireStrictAuth, requireInstructorAccess, (req, res) => {
+    const { blueprintId } = req.query;
+    if (!blueprintId) return res.status(400).json({ error: 'blueprintId required.' });
+    try {
+        const messages = db.prepare(`
+            SELECT role, content, created_at
+            FROM instructor_messages
+            WHERE user_id = ? AND blueprint_id = ?
+            ORDER BY created_at ASC
+            LIMIT 200
+        `).all(req.user.id, blueprintId);
+        res.json({ messages });
+    } catch (err) {
+        console.error('[Instructor] History fetch error:', err.message);
+        res.status(500).json({ error: 'Failed to load history.' });
+    }
+});
+
+// GET /api/instructor/first-message?blueprintId=xxx
+// Generates the Instructor's opening message for first-time sessions
+app.get('/api/instructor/first-message', requireStrictAuth, requireInstructorAccess, async (req, res) => {
+    const { blueprintId } = req.query;
+    if (!blueprintId) return res.status(400).json({ error: 'blueprintId required.' });
+    try {
+        // Check if already has messages
+        const existing = db.prepare(`
+            SELECT COUNT(*) AS cnt FROM instructor_messages
+            WHERE user_id = ? AND blueprint_id = ?
+        `).get(req.user.id, blueprintId);
+        if (existing?.cnt > 0) return res.json({ alreadyStarted: true });
+
+        const bp = db.prepare('SELECT * FROM blueprints WHERE id = ? AND user_id = ?').get(blueprintId, req.user.id);
+        if (!bp) return res.status(404).json({ error: 'Blueprint not found.' });
+
+        const user = db.prepare('SELECT trial_started_at FROM users WHERE id = ?').get(req.user.id);
+        const tasks = db.prepare('SELECT * FROM user_tasks WHERE blueprint_id = ? AND user_id = ?').all(blueprintId, req.user.id);
+
+        const openingMessage = 'Hello! I\'m ready to begin. Please review my blueprint and tell me: what is the single highest-leverage system I should activate first, and what is my exact first action for this week?';
+
+        const response = await runInstructor(
+            API_KEY, bp, openingMessage, [], tasks, user?.trial_started_at
+        );
+
+        // Persist both sides
+        const saveMsg = db.prepare(`
+            INSERT INTO instructor_messages (blueprint_id, user_id, role, content)
+            VALUES (?, ?, ?, ?)
+        `);
+        saveMsg.run(blueprintId, req.user.id, 'user', openingMessage);
+        saveMsg.run(blueprintId, req.user.id, 'assistant', response);
+
+        res.json({ response, openingMessage });
+    } catch (err) {
+        console.error('[Instructor] First-message error:', err.message);
+        res.status(500).json({ error: 'Failed to generate opening.' });
+    }
+});
+
+// POST /api/instructor
+app.post('/api/instructor', requireStrictAuth, requireInstructorAccess, async (req, res) => {
+    const { blueprintId, message } = req.body;
+    if (!blueprintId || !message?.trim()) {
+        return res.status(400).json({ error: 'blueprintId and message are required.' });
+    }
+    if (!API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not configured.' });
+
+    try {
+        // Load blueprint
+        const bp = db.prepare('SELECT * FROM blueprints WHERE id = ? AND user_id = ?').get(blueprintId, req.user.id);
+        if (!bp) return res.status(404).json({ error: 'Blueprint not found.' });
+
+        // Load conversation history + user data + tasks
+        const dbHistory = db.prepare(`
+            SELECT role, content FROM instructor_messages
+            WHERE user_id = ? AND blueprint_id = ?
+            ORDER BY created_at ASC LIMIT 40
+        `).all(req.user.id, blueprintId);
+
+        const user  = db.prepare('SELECT trial_started_at FROM users WHERE id = ?').get(req.user.id);
+        const tasks = db.prepare('SELECT * FROM user_tasks WHERE blueprint_id = ? AND user_id = ?').all(blueprintId, req.user.id);
+
+        // Run AI
+        const response = await runInstructor(API_KEY, bp, message, dbHistory, tasks, user?.trial_started_at);
+
+        // Persist both messages
+        const saveMsg = db.prepare(`
+            INSERT INTO instructor_messages (blueprint_id, user_id, role, content)
+            VALUES (?, ?, ?, ?)
+        `);
+        saveMsg.run(blueprintId, req.user.id, 'user', message);
+        saveMsg.run(blueprintId, req.user.id, 'assistant', response);
+
+        res.json({ response, generatedAt: new Date().toISOString() });
+    } catch (err) {
+        console.error('[Instructor] Chat error:', err.message);
+        if (err.message?.includes('429') || err.message?.includes('RESOURCE_EXHAUSTED')) {
+            return res.status(429).json({ error: 'AI is busy — please wait a moment and try again.' });
+        }
+        res.status(500).json({ error: 'Instructor failed: ' + err.message });
     }
 });
 

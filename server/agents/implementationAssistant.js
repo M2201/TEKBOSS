@@ -30,10 +30,12 @@ export async function runImplementationAssistant(apiKey, blueprint, userMessage,
     // ── System instruction ───────────────────────────────────────────────────
     // Base prompt + coaching knowledge (tool-specific) + personality style + probe
     const knowledgeBlock   = buildCoachingKnowledgeBlock(blueprint);
-    let systemInstruction  = IMPLEMENTATION_ASSISTANT_PROMPT + knowledgeBlock + coachingStyleBlock;
+    const taskBlock        = blueprint.taskProgressContext || '';
+    let systemInstruction  = IMPLEMENTATION_ASSISTANT_PROMPT + knowledgeBlock + taskBlock + coachingStyleBlock;
     if (probeInstruction) {
         systemInstruction += `\n\n---\nPROBE INJECTION INSTRUCTION (for this response only):\n${probeInstruction}\n---\n`;
     }
+
 
     // ── Conversation ─────────────────────────────────────────────────────────
     const contents = [];

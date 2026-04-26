@@ -1494,25 +1494,61 @@ app.get('/api/admin/metrics', requireAdminKey, (req, res) => {
             LIMIT ?
         `).all(days);
 
-        // Summary totals
+        // Latest snapshot
         const latest = rows[0] || {};
+
+        // User cohort breakdown
+        const cohort = db.prepare(`
+            SELECT subscription_status, COUNT(*) AS cnt
+            FROM users GROUP BY subscription_status
+        `).all();
+        const cohortMap = Object.fromEntries(cohort.map(r => [r.subscription_status || 'none', r.cnt]));
+
+        // Total revenue = paid blueprints × $599 (one-time fee)
+        const paidBps = db.prepare("SELECT COUNT(*) AS c FROM blueprints WHERE paid_at IS NOT NULL").get()?.c ?? 0;
+        const totalRevenueDollars = paidBps * 599;
+
+        // MRR = active subscribers × $49.99 + trialing × $0 (billed at end of trial)
+        const activeCount = cohortMap['active'] || 0;
+
+        // Recent blueprints (last 10)
+        const recentBlueprints = db.prepare(`
+            SELECT b.id, b.created_at, b.paid_at, u.email,
+                   COALESCE(
+                       json_extract(b.validated_data, '$.businessName'),
+                       'Unknown'
+                   ) AS business_name,
+                   u.subscription_status
+            FROM blueprints b
+            LEFT JOIN users u ON u.id = b.user_id
+            WHERE b.paid_at IS NOT NULL
+            ORDER BY b.created_at DESC
+            LIMIT 10
+        `).all();
+
         const summary = {
-            mrr_dollars:          parseFloat(((latest.mrr_cents || 0) / 100).toFixed(2)),
-            dau_today:            latest.dau || 0,
-            blueprints_today:     latest.blueprints_generated || 0,
+            mrr_dollars:           parseFloat(((latest.mrr_cents || activeCount * 4999) / 100).toFixed(2)),
+            dau_today:             latest.dau || 0,
+            blueprints_today:      latest.blueprints_generated || 0,
             tasks_completed_today: latest.tasks_completed || 0,
-            db_size_mb:           latest.db_size_mb || 0,
-            total_users:          db.prepare('SELECT COUNT(*) AS c FROM users').get()?.c ?? 0,
-            total_blueprints:     db.prepare('SELECT COUNT(*) AS c FROM blueprints WHERE paid_at IS NOT NULL').get()?.c ?? 0,
-            active_subscribers:   db.prepare("SELECT COUNT(*) AS c FROM users WHERE subscription_status = 'active'").get()?.c ?? 0,
+            db_size_mb:            latest.db_size_mb || 0,
+            total_users:           db.prepare('SELECT COUNT(*) AS c FROM users').get()?.c ?? 0,
+            total_blueprints:      paidBps,
+            total_revenue_dollars: totalRevenueDollars,
+            active_subscribers:    activeCount,
+            trialing_users:        cohortMap['trialing'] || 0,
+            expired_users:         cohortMap['expired'] || 0,
+            cancelled_users:       cohortMap['cancelled'] || 0,
+            past_due_users:        cohortMap['past_due'] || 0,
         };
 
-        res.json({ summary, history: rows });
+        res.json({ summary, history: rows, cohort: cohortMap, recentBlueprints });
     } catch (err) {
         console.error('[Admin] Metrics fetch failed:', err.message);
         res.status(500).json({ error: 'Failed to fetch metrics.' });
     }
 });
+
 
 // POST /api/admin/metrics/snapshot — trigger an immediate metric recording
 app.post('/api/admin/metrics/snapshot', requireAdminKey, (req, res) => {

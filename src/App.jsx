@@ -3,6 +3,7 @@ import IntelligenceEngineLoader from './IntelligenceEngineLoader';
 import BlueprintLoader from './BlueprintLoader';
 import PreviewReport from './PreviewReport';
 import BlueprintDashboard from './BlueprintDashboard';
+import AdminDashboard from './AdminDashboard';
 import ReactMarkdown from 'react-markdown';
 import {
   ChevronRight, Cpu, FileText, Lock, MessageSquare, BarChart3,
@@ -315,6 +316,11 @@ const AgentBubble = ({ msg }) => (
 
 // ─── Main App ──────────────────────────────────────────────────────────────────
 export default function App() {
+  // ── Admin route: navigate to /?admin to access the admin dashboard ──
+  if (new URLSearchParams(window.location.search).has('admin')) {
+    return <AdminDashboard />;
+  }
+
   const [stage, setStage] = useState(1);
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [answers, setAnswers] = useState({});

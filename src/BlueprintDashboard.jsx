@@ -7,8 +7,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   CheckCircle2, Circle, ChevronRight, ChevronDown, Download,
   Zap, BarChart3, Globe, TrendingUp, Target, Layers, Calendar,
-  FileText, Star, Award, Clock, ArrowRight, Bot,
+  FileText, Star, ArrowRight, Bot, CalendarPlus, X,
 } from 'lucide-react';
+
 
 // ─── Coin reward animation + sound ───────────────────────────────────────────
 function playCoinSound() {
@@ -105,33 +106,98 @@ function GlobalProgress({ done, total, businessName }) {
 }
 
 // ─── Task Item ─────────────────────────────────────────────────────────────────
-function TaskItem({ task, onToggle }) {
+function TaskItem({ task, onToggle, calendarConnected, onSchedule, onUnschedule }) {
   const done = task.status === 'done';
+  const [showScheduler, setShowScheduler] = useState(false);
+  const [schedDate, setSchedDate] = useState('');
+  const [schedTime, setSchedTime] = useState('09:00');
+  const [scheduling, setScheduling] = useState(false);
+
+  const handleScheduleSubmit = async (e) => {
+    e.preventDefault();
+    if (!schedDate) return;
+    setScheduling(true);
+    try {
+      await onSchedule(task, `${schedDate}T${schedTime}:00`);
+      setShowScheduler(false);
+    } finally { setScheduling(false); }
+  };
+
   return (
-    <div
-      className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all select-none group
-        ${done ? 'opacity-60' : 'hover:bg-slate-800/50'}`}
-      onClick={() => onToggle(task, !done)}
-      role="checkbox"
-      aria-checked={done}
-    >
-      <div className={`mt-0.5 shrink-0 transition-colors ${done ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-400'}`}>
-        {done ? <CheckCircle2 size={18} /> : <Circle size={18} />}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm font-semibold leading-snug ${done ? 'line-through text-slate-500' : 'text-slate-200'}`}>
-          {task.title}
-        </p>
-        {task.description && (
-          <p className="text-xs text-slate-500 mt-1 leading-relaxed">{task.description}</p>
+    <div className={`rounded-xl transition-all ${done ? 'opacity-60' : ''}`}>
+      <div
+        className={`flex items-start gap-3 p-3 cursor-pointer select-none group ${done ? '' : 'hover:bg-slate-800/50 rounded-xl'}`}
+        onClick={() => onToggle(task, !done)}
+        role="checkbox"
+        aria-checked={done}
+      >
+        <div className={`mt-0.5 shrink-0 transition-colors ${done ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-400'}`}>
+          {done ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-semibold leading-snug ${done ? 'line-through text-slate-500' : 'text-slate-200'}`}>
+            {task.title}
+          </p>
+          {task.description && (
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">{task.description}</p>
+          )}
+          {task.calendar_event_id && task.due_date && (
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="flex items-center gap-1 text-[10px] font-bold text-blue-400 bg-blue-950/40 border border-blue-800/30 px-2 py-0.5 rounded-full">
+                <Calendar size={9} />
+                {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+              </span>
+              <button
+                onClick={(ev) => { ev.stopPropagation(); onUnschedule(task); }}
+                className="text-[10px] text-slate-600 hover:text-red-400 transition-colors"
+                title="Remove from calendar"
+              ><X size={10} /></button>
+            </div>
+          )}
+        </div>
+        {calendarConnected && !done && (
+          <button
+            onClick={(ev) => { ev.stopPropagation(); setShowScheduler(s => !s); }}
+            className={`shrink-0 mt-0.5 p-1 rounded-lg transition-colors ${showScheduler ? 'text-blue-400 bg-blue-950/40' : 'text-slate-600 hover:text-blue-400 hover:bg-slate-800'}`}
+            title="Schedule in Google Calendar"
+          ><CalendarPlus size={13} /></button>
         )}
       </div>
+
+      {showScheduler && (
+        <form
+          onSubmit={handleScheduleSubmit}
+          className="ml-9 mr-3 mb-3 p-3 bg-slate-800/60 rounded-xl border border-slate-700/50 flex items-end gap-2"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Date</label>
+            <input type="date" value={schedDate} onChange={e => setSchedDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]} required
+              className="bg-slate-900 border border-slate-700 text-white text-xs px-2 py-1.5 rounded-lg w-full outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Time</label>
+            <input type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)}
+              className="bg-slate-900 border border-slate-700 text-white text-xs px-2 py-1.5 rounded-lg outline-none focus:border-blue-500" />
+          </div>
+          <button type="submit" disabled={scheduling}
+            className="text-xs font-black uppercase tracking-widest text-white px-3 py-1.5 rounded-lg transition-all disabled:opacity-50"
+            style={{ backgroundColor: 'var(--brand-primary, #3b82f6)' }}>
+            {scheduling ? '…' : 'Add'}
+          </button>
+          <button type="button" onClick={() => setShowScheduler(false)} className="text-slate-500 hover:text-slate-300 p-1">
+            <X size={13} />
+          </button>
+        </form>
+      )}
     </div>
   );
 }
 
+
 // ─── Module Card ───────────────────────────────────────────────────────────────
-function ModuleCard({ system, tasks = [], onTaskToggle, index }) {
+function ModuleCard({ system, tasks = [], onTaskToggle, index, calendarConnected, onScheduleTask, onUnscheduleTask }) {
   const [open, setOpen] = useState(false);
   const done  = tasks.filter(t => t.status === 'done').length;
   const total = tasks.length;
@@ -221,7 +287,14 @@ function ModuleCard({ system, tasks = [], onTaskToggle, index }) {
           ) : (
             <div className="space-y-1">
               {tasks.map(task => (
-                <TaskItem key={task.id} task={task} onToggle={onTaskToggle} />
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onToggle={onTaskToggle}
+                  calendarConnected={calendarConnected}
+                  onSchedule={onScheduleTask}
+                  onUnschedule={onUnscheduleTask}
+                />
               ))}
             </div>
           )}
@@ -240,11 +313,62 @@ export default function BlueprintDashboard({
   onLaunchInstructor,
   blueprintDriveLink,
 }) {
-  const [tasks, setTasks]         = useState([]);
-  const [progress, setProgress]   = useState({ total_tasks: 0, done_tasks: 0 });
+  const [tasks, setTasks]               = useState([]);
+  const [progress, setProgress]         = useState({ total_tasks: 0, done_tasks: 0 });
   const [loadingTasks, setLoadingTasks] = useState(true);
-  const [coins, setCoins]         = useState([]);
+  const [calendarStatus, setCalendarStatus] = useState({ connected: false, configured: false });
+  const [coins, setCoins]               = useState([]);
   const coinIdRef = useRef(0);
+
+  // ── Detect ?calendar=connected after OAuth redirect ───────────────────────────
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('calendar') === 'connected') {
+      setCalendarStatus({ connected: true, configured: true });
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (p.get('calendar') === 'error') {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  // ── Load calendar status ────────────────────────────────────────────────────
+  useEffect(() => {
+    fetch('/api/calendar/status', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setCalendarStatus(d))
+      .catch(() => {});
+  }, []);
+
+  const handleConnectCalendar = useCallback(async () => {
+    try {
+      const res = await fetch('/api/calendar/auth-url', { credentials: 'include' });
+      const { url } = await res.json();
+      if (url) window.location.href = url;
+    } catch (_) {}
+  }, []);
+
+  const handleScheduleTask = useCallback(async (task, startIso) => {
+    const res = await fetch(`/api/tasks/${task.id}/schedule`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ startIso }),
+    });
+    if (res.ok) {
+      const { task: updated } = await res.json();
+      setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
+    }
+  }, []);
+
+  const handleUnscheduleTask = useCallback(async (task) => {
+    const res = await fetch(`/api/tasks/${task.id}/schedule`, {
+      method: 'DELETE', credentials: 'include',
+    });
+    if (res.ok) {
+      const { task: updated } = await res.json();
+      setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
+    }
+  }, []);
 
   // ── Apply brand color theming ─────────────────────────────────────────────
   useEffect(() => {
@@ -406,7 +530,33 @@ export default function BlueprintDashboard({
           businessName={businessName}
         />
 
+        {/* ── Calendar Banner ── */}
+        {calendarStatus.configured && !calendarStatus.connected && (
+          <div className="mb-6 flex items-center justify-between p-4 rounded-2xl border border-blue-800/30 bg-blue-950/20">
+            <div className="flex items-center gap-3">
+              <Calendar size={18} className="text-blue-400 shrink-0" />
+              <div>
+                <p className="text-white text-sm font-bold">Connect Google Calendar</p>
+                <p className="text-slate-400 text-xs">Schedule tasks to your calendar with 1 click.</p>
+              </div>
+            </div>
+            <button id="calendar-connect-btn" onClick={handleConnectCalendar}
+              className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-white px-4 py-2 rounded-xl shrink-0 transition-all"
+              style={{ backgroundColor: 'var(--brand-primary, #3b82f6)' }}>
+              <Calendar size={11} /> Connect
+            </button>
+          </div>
+        )}
+        {calendarStatus.connected && (
+          <div className="mb-6 flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-emerald-800/30 bg-emerald-950/10">
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <p className="text-emerald-400 text-xs font-bold">Google Calendar connected — tap the calendar icon on any task to schedule it.</p>
+          </div>
+        )}
+
+
         {/* ── Named Systems Module Grid ── */}
+
         {namedSystems.length > 0 ? (
           <>
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 mb-4">
@@ -420,6 +570,9 @@ export default function BlueprintDashboard({
                   index={i}
                   tasks={tasksByModule[system.name] || []}
                   onTaskToggle={(task, markDone) => handleTaskToggle(task, markDone)}
+                  calendarConnected={calendarStatus.connected}
+                  onScheduleTask={handleScheduleTask}
+                  onUnscheduleTask={handleUnscheduleTask}
                 />
               ))}
             </div>

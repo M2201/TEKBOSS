@@ -37,6 +37,10 @@ import { uploadBlueprintToDrive, deliverBlueprintPackage, isDriveConfigured } fr
 import { logAiCall } from './agents/aiLogger.js';
 import { selectToolsWithLlm } from './knowledge/llmToolSelector.js';
 import { runTaskGenerator } from './agents/taskGenerator.js';
+import {
+    isCalendarConfigured, getCalendarAuthUrl, exchangeCodeAndSave,
+    getCalendarStatus, createTaskEvent, deleteTaskEvent,
+} from './calendarSync.js';
 import authRouter, { requireStrictAuth, requireAuth } from './auth.js';
 import db from './db.js';
 
@@ -763,7 +767,96 @@ app.patch('/api/tasks/:taskId', requireStrictAuth, (req, res) => {
     }
 });
 
-// Load a specific blueprint
+// ─────────────────────────────────────────────────────────────────────────────
+// GOOGLE CALENDAR API
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GET /api/calendar/status — is calendar connected for this user?
+app.get('/api/calendar/status', requireStrictAuth, (req, res) => {
+    if (!isCalendarConfigured()) return res.json({ connected: false, configured: false });
+    const status = getCalendarStatus(req.user.id);
+    res.json({ ...status, configured: true });
+});
+
+// GET /api/calendar/auth-url — returns the Google OAuth URL
+app.get('/api/calendar/auth-url', requireStrictAuth, (req, res) => {
+    if (!isCalendarConfigured()) {
+        return res.status(503).json({ error: 'Google Calendar is not configured on this server.' });
+    }
+    const url = getCalendarAuthUrl(req.user.id);
+    res.json({ url });
+});
+
+// GET /api/calendar/callback — Google redirects here after user grants access
+// Note: this is a server-side redirect (no auth middleware — it IS the auth step)
+app.get('/api/calendar/callback', async (req, res) => {
+    const { code, state, error } = req.query;
+    const BASE_URL = process.env.BASE_URL || 'http://localhost:3005';
+
+    if (error || !code || !state) {
+        console.error('[Calendar] OAuth callback error:', error || 'missing code/state');
+        return res.redirect(`${BASE_URL}?calendar=error`);
+    }
+
+    try {
+        await exchangeCodeAndSave(code, state);
+        res.redirect(`${BASE_URL}?calendar=connected`);
+    } catch (err) {
+        console.error('[Calendar] Token exchange failed:', err.message);
+        res.redirect(`${BASE_URL}?calendar=error`);
+    }
+});
+
+// POST /api/tasks/:taskId/schedule — create a Calendar event for a task
+app.post('/api/tasks/:taskId/schedule', requireStrictAuth, async (req, res) => {
+    const { taskId } = req.params;
+    const { startIso, durationMins } = req.body;
+
+    if (!startIso) return res.status(400).json({ error: 'startIso is required (ISO 8601 datetime).' });
+
+    const task = db.prepare('SELECT * FROM user_tasks WHERE id = ? AND user_id = ?')
+                   .get(taskId, req.user.id);
+    if (!task) return res.status(404).json({ error: 'Task not found.' });
+
+    const status = getCalendarStatus(req.user.id);
+    if (!status.connected) return res.status(403).json({ error: 'Google Calendar not connected. Connect from the dashboard first.' });
+
+    try {
+        // Delete old event if rescheduling
+        if (task.calendar_event_id) {
+            await deleteTaskEvent(req.user.id, taskId);
+        }
+
+        const event = await createTaskEvent(req.user.id, {
+            taskId,
+            title:       task.title,
+            description: task.description,
+            startIso,
+            durationMins: durationMins || 60,
+        });
+
+        const updatedTask = db.prepare('SELECT * FROM user_tasks WHERE id = ?').get(taskId);
+        res.json({ task: updatedTask, event: { id: event.id, htmlLink: event.htmlLink } });
+    } catch (err) {
+        console.error('[Calendar] Schedule task failed:', err.message);
+        res.status(500).json({ error: 'Failed to schedule task in Google Calendar.' });
+    }
+});
+
+// DELETE /api/tasks/:taskId/schedule — remove the Calendar event
+app.delete('/api/tasks/:taskId/schedule', requireStrictAuth, async (req, res) => {
+    const { taskId } = req.params;
+    try {
+        await deleteTaskEvent(req.user.id, taskId);
+        const updatedTask = db.prepare('SELECT * FROM user_tasks WHERE id = ?').get(taskId);
+        res.json({ task: updatedTask });
+    } catch (err) {
+        console.error('[Calendar] Unschedule failed:', err.message);
+        res.status(500).json({ error: 'Failed to remove calendar event.' });
+    }
+});
+
+
 app.get('/api/blueprints/:id', requireStrictAuth, (req, res) => {
     try {
         const stmt = db.prepare('SELECT * FROM blueprints WHERE id = ? AND user_id = ?');

@@ -535,7 +535,7 @@ export default function PreviewReport({
                   'Tool Stack Decisions & Automation Workflows',
                   'Prompt Templates with Brand Voice Built In',
                   'Custom Scope of Work (SOW) — Partner-Ready',
-                  '90-Day AI Build-Out Coach — Guided Setup Included',
+                  'AI Instructor — 60-Day Guided Implementation Included',
                 ].map((item, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <CheckCircle size={15} className="text-blue-400 shrink-0 mt-0.5" />

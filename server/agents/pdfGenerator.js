@@ -708,7 +708,7 @@ export function generateBlueprintPdf(pdfData) {
       .text('Ready to execute?', { align: 'center' });
     doc.moveDown(0.8);
     doc.font('Helvetica').fontSize(11).fillColor(COLORS.slate).text(
-      'Your 90-Day Build-Out Coach is waiting in the dashboard.',
+      'Your AI Instructor is ready in your dashboard — 60 days included.',
       { align: 'center', width: CONTENT_W, indent: L_MARGIN }
     );
     doc.moveDown(0.5);

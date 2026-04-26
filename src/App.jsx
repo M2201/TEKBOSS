@@ -161,7 +161,7 @@ const Sidebar = ({ stage, onStartFresh }) => {
     { id: 2, label: 'Processing',          icon: Cpu },
     { id: 3, label: 'Preview Report',      icon: BarChart3 },
     { id: 4, label: 'Full Blueprint',      icon: FileText, locked: stage < 4 },
-    { id: 5, label: 'Build-Out Coach',     icon: Bot,      locked: stage < 5 },
+    { id: 5, label: 'AI Instructor',       icon: Bot,      locked: stage < 5 },
   ];
   return (
     <div className="hidden md:flex w-72 bg-slate-950 text-slate-400 p-6 flex-col h-full border-r border-slate-800/50 flex-shrink-0">
@@ -2164,18 +2164,18 @@ export default function App() {
                     <Bot size={28} />
                   </div>
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-200 mb-3">Included with your blueprint</p>
-                  <h3 className="text-3xl font-black tracking-tighter mb-4 uppercase">90-Day Build-Out Coach</h3>
+                  <h3 className="text-3xl font-black tracking-tighter mb-4 uppercase">Your AI Instructor</h3>
                   <p className="text-blue-100 text-sm mb-8 max-w-lg leading-relaxed">
-                    Your blueprint-grounded AI guide. It walks you through every system, every integration, every automation — step by step. Every response is built around YOUR business, YOUR systems, YOUR 90-day roadmap.
+                    Your blueprint-grounded AI Instructor. It walks you through every system, every integration, every automation — step by step. Every response is built around YOUR business, YOUR systems, YOUR implementation roadmap.
                   </p>
                   <button
                     onClick={() => setStage(5)}
                     className="bg-white text-blue-700 font-black px-10 py-4 rounded-2xl shadow-xl uppercase tracking-widest text-xs hover:bg-blue-50 transition-all flex items-center gap-2"
                   >
-                    Launch Build-Out Coach <ArrowRight size={14} />
+                    Launch AI Instructor <ArrowRight size={14} />
                   </button>
                   <p className="text-blue-200/50 text-[10px] font-bold uppercase tracking-widest mt-4">
-                    90 days included · then $34.99/mo · cancel anytime
+                    60 days included · then $49.99/mo · cancel anytime
                   </p>
                 </div>
               </div>
@@ -2224,7 +2224,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ── STAGE 5: Build-Out Coach ── */}
+        {/* ── STAGE 5: AI Instructor ── */}
         {stage === 5 && (
           <div className="flex flex-col h-full">
             {/* Header */}
@@ -2235,7 +2235,7 @@ export default function App() {
                     <Bot size={20} />
                   </div>
                   <div>
-                    <h3 className="font-black text-white text-sm uppercase tracking-tight">90-Day Build-Out Coach</h3>
+                    <h3 className="font-black text-white text-sm uppercase tracking-tight">AI Instructor</h3>
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">
                       Grounded in {businessName ? `${businessName}'s` : 'your'} blueprint
                     </p>
@@ -2256,7 +2256,7 @@ export default function App() {
                         : 'text-slate-500 bg-slate-900 border-slate-800'
                     }`}>
                       {subscription.isWarningPeriod
-                        ? `⚠ Auto-renewal in ${subscription.daysRemaining}d — $34.99/mo`
+                        ? `⚠ Auto-renewal in ${subscription.daysRemaining}d — $49.99/mo`
                         : `${subscription.daysRemaining} days remaining`}
                     </span>
                   )}
@@ -2281,7 +2281,7 @@ export default function App() {
               {showCancelConfirm && (
                 <div className="mt-4 bg-red-950/30 border border-red-800/20 rounded-xl px-5 py-4 flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-red-200 font-medium">Cancel your Build-Out Coach subscription?</p>
+                    <p className="text-sm text-red-200 font-medium">Cancel your AI Instructor subscription?</p>
                     <p className="text-[10px] text-red-400/60 font-medium mt-1">Your blueprint is yours forever. You’ll keep access until the end of your current period.</p>
                   </div>
                   <div className="flex gap-2 flex-shrink-0 ml-4">
@@ -2311,7 +2311,7 @@ export default function App() {
                   <div className="w-16 h-16 bg-blue-600/10 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-blue-500/20">
                     <Bot size={32} />
                   </div>
-                  <h3 className="text-xl font-black text-white mb-3 uppercase tracking-tight">Your Build-Out Coach</h3>
+                  <h3 className="text-xl font-black text-white mb-3 uppercase tracking-tight">Your AI Instructor</h3>
                   <p className="text-slate-400 text-sm max-w-md mx-auto leading-relaxed mb-6">
                     I'll walk you through every system in your blueprint — from setup to launch. Each answer is built around your specific business, tools, and 90-day roadmap.
                   </p>

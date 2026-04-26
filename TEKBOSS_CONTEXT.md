@@ -112,6 +112,31 @@ Intake (23 Qs) → Stage 1: intakeSynthesizer  → Executive Summary
 
 ---
 
+## ⚠️ Git Push — Known Limitation
+
+**`git push` from AI terminal sessions does NOT work.**
+- Both HTTPS (`github.com`) and SSH (port 22) are blocked
+- Error: `fatal: unable to access ... Could not resolve host: github.com`
+- This is a local firewall/security tool blocking terminal process outbound connections
+- Browser traffic works fine — only terminal git push is affected
+- **Workaround:** After committing in the AI session, user manually runs `git push origin main --tags` from their own Terminal app or GitHub Desktop
+- **Do not waste time debugging this in future sessions — it is a known environment constraint**
+
+---
+
+## 📌 Current Version
+
+| Field | Value |
+|---|---|
+| **Tag** | `v2.1.0` |
+| **Commit** | `3a4f278` |
+| **Date** | 2026-04-26 |
+| **Status** | Pipeline Stabilization — stable rollback point |
+
+**To roll back:** `git checkout v2.1.0`
+
+---
+
 ## 🐛 Known Issues / Watch List
 
 - **reCAPTCHA trust building:** Monitor `/api/auth` logs for score values. Once scores regularly > 0.5, re-enable blocking mode in `server/auth.js` (change `if (score < 0.3)` from log-only to blocking)

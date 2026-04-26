@@ -846,18 +846,18 @@ app.post('/api/verify-payment', requireAuth, async (req, res) => {
                             price_data: {
                                 currency: 'usd',
                                 product_data: {
-                                    name: 'TEK BOSS AI Build-Out Assistant',
-                                    description: 'Your AI-guided build-out coach — continues after the 90-day included period.',
+                                    name: 'TEK BOSS AI Instructor',
+                                    description: 'Your AI Instructor — 60 days included with blueprint, then $49.99/month for continued access.',
                                 },
                                 recurring: { interval: 'month' },
-                                unit_amount: 3499, // $34.99
+                                unit_amount: 4999, // $49.99
                             },
                         }],
-                        trial_period_days: 90,
+                        trial_period_days: 60, // 60-day included period before $49.99/mo kicks in
                         metadata: { userId, product: 'tek-boss-assistant' },
                     });
 
-                    const trialEnd = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+                    const trialEnd = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
                     db.prepare(`UPDATE users SET 
                         stripe_subscription_id = ?, 
                         subscription_status = 'trialing',

@@ -103,14 +103,58 @@ if (process.env.VERCEL) {
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
 
-            CREATE TABLE IF NOT EXISTS coach_messages (
+            CREATE TABLE IF NOT EXISTS instructor_messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 blueprint_id TEXT NOT NULL,
                 user_id TEXT NOT NULL,
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
+                image_url TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS user_tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                blueprint_id TEXT NOT NULL,
+                task_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT,
+                module TEXT,
+                status TEXT DEFAULT 'pending',
+                due_date TEXT,
+                completed_at TEXT,
+                calendar_event_id TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY(blueprint_id) REFERENCES blueprints(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS user_progress (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                blueprint_id TEXT NOT NULL,
+                total_tasks INTEGER DEFAULT 0,
+                done_tasks INTEGER DEFAULT 0,
+                last_active DATETIME,
+                phase TEXT DEFAULT 'phase_1',
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY(blueprint_id) REFERENCES blueprints(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS metrics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL UNIQUE,
+                dau INTEGER DEFAULT 0,
+                blueprints_generated INTEGER DEFAULT 0,
+                tasks_completed INTEGER DEFAULT 0,
+                mrr_cents INTEGER DEFAULT 0,
+                api_errors INTEGER DEFAULT 0,
+                token_usage INTEGER DEFAULT 0,
+                db_size_mb REAL DEFAULT 0,
+                recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
         `);
 
@@ -127,17 +171,22 @@ if (process.env.VERCEL) {
         // Users table migrations
         safeAddColumn('users', 'stripe_customer_id', 'TEXT');
         safeAddColumn('users', 'stripe_subscription_id', 'TEXT');
+        safeAddColumn('users', 'subscription_status', "TEXT DEFAULT 'none'"); // none | trialing | active | cancelled | expired
+        safeAddColumn('users', 'subscription_ends_at', 'DATETIME');       // when monthly access expires
+        safeAddColumn('users', 'trial_started_at', 'DATETIME');           // when $599 was paid → 60-day trial begins
+        safeAddColumn('users', 'trial_alert_30_sent', 'INTEGER DEFAULT 0'); // 1 = 30-day "time ticking" alert sent
+        safeAddColumn('users', 'google_calendar_token', 'TEXT');           // encrypted OAuth token for Calendar
+        safeAddColumn('users', 'google_calendar_connected', 'INTEGER DEFAULT 0');
 
         // Blueprints table migrations
         safeAddColumn('blueprints', 'validated_data', 'TEXT');
         safeAddColumn('blueprints', 'preview_report', 'TEXT');
         safeAddColumn('blueprints', 'paid_at', 'DATETIME');
         safeAddColumn('blueprints', 'assistant_expires_at', 'DATETIME');
-
-        // Subscription tracking
-        safeAddColumn('users', 'subscription_status', "TEXT DEFAULT 'none'"); // none, trialing, active, cancelled, expired
-        safeAddColumn('users', 'subscription_ends_at', 'DATETIME');
-        safeAddColumn('users', 'trial_started_at', 'DATETIME');
+        safeAddColumn('blueprints', 'tasks_generated', 'INTEGER DEFAULT 0');  // 1 = AI task list generated
+        safeAddColumn('blueprints', 'brand_theme_applied', 'INTEGER DEFAULT 0'); // 1 = client colors injected
+        safeAddColumn('blueprints', 'website_analysis', 'TEXT');          // scraped + AI website analysis JSON
+        safeAddColumn('blueprints', 'website_teaser', 'TEXT');            // pre-paywall observation bullets (no solutions)
     }
 
     initSchema();

@@ -345,9 +345,9 @@ Content must include:
    - Format every template exactly like this:
      **[TEMPLATE NAME]**
      Use when: [specific trigger situation]
-     ```
+     \`\`\`
      [Your actual prompt text here. Replace [BUSINESS NAME], [CLIENT NAME], [INDUSTRY], [SPECIFIC DETAIL] with actual brand-specific content from the validated data wherever possible.]
-     ```
+     \`\`\`
    - Templates must cover: client outreach, content creation, proposal/scope writing, follow-up automation, and internal SOP drafting — adapted to THIS business's industry and named systems.
    - Every template must have the brand voice and tone from the validated data baked in.
 

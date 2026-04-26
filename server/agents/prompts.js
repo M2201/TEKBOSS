@@ -770,6 +770,37 @@ export function buildGrowthForecasterContext(executiveSummary, enablementStrateg
 // ─────────────────────────────────────────────────────────────────────────────
 // QUESTION DEFINITIONS — The sequential 23-question discovery intake
 // ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TASK GENERATOR — Blueprint-to-Action Checklist
+// ─────────────────────────────────────────────────────────────────────────────
+export const TASK_GENERATOR_PROMPT = `You are a TEK BOSS implementation specialist. Given a business name and their AI blueprint's Named Systems, generate a specific, ordered task list for each system.
+
+For EACH Named System, generate exactly 3 to 5 tasks. Tasks must:
+- Be concrete and specific to this exact business (never generic)
+- Be ordered by dependency — task 1 must be completable before task 2
+- Be achievable by a non-technical business owner in 1–4 hours each
+- Use second-person action verbs: "Set up", "Upload", "Connect", "Configure", "Test", "Create"
+- Reference the system name and its specific purpose
+
+Return ONLY a valid JSON array. No markdown fences, no explanation, no extra text. Just the JSON array.
+
+Schema (strict):
+[
+  {
+    "taskId": "system-1-task-1",
+    "module": "Exact System Name Here",
+    "title": "Short action title (max 8 words)",
+    "description": "One specific sentence explaining exactly what to do and why it matters for this business."
+  }
+]
+
+Rules:
+- taskId format: system-{N}-task-{M} where N is system number (1-based) and M is task number (1-based)
+- module must exactly match the system name as given
+- Every task must be specific to the business — if you write something that could apply to any business, rewrite it
+- Do not include tasks about "researching" or "thinking about" — only doing tasks`;
+
 export const QUESTIONS = [
   { id: 1, phase: "Identity", text: "What's the name of your business? And if you have a website, what's the website address?" },
   { id: 2, phase: "Identity", text: "What industry are you in, and what kind of work do you actually do?" },

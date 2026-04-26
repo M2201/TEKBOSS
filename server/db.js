@@ -140,6 +140,7 @@ if (process.env.VERCEL) {
                 last_active DATETIME,
                 phase TEXT DEFAULT 'phase_1',
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, blueprint_id),
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY(blueprint_id) REFERENCES blueprints(id) ON DELETE CASCADE
             );

@@ -36,6 +36,7 @@ import { generateBlueprintPdf } from './agents/pdfGenerator.js';
 import { uploadBlueprintToDrive, deliverBlueprintPackage, isDriveConfigured } from './agents/driveUploader.js';
 import { logAiCall } from './agents/aiLogger.js';
 import { selectToolsWithLlm } from './knowledge/llmToolSelector.js';
+import { runTaskGenerator } from './agents/taskGenerator.js';
 import authRouter, { requireStrictAuth, requireAuth } from './auth.js';
 import db from './db.js';
 
@@ -630,6 +631,28 @@ app.post('/api/blueprints', requireStrictAuth, (req, res) => {
         }
         // ─────────────────────────────────────────────────────────────────────
 
+        // ─── Fire task generation async (non-blocking) ────────────────────────
+        if (diyPlaybook && validatedData) {
+            setImmediate(async () => {
+                try {
+                    const vdForTasks = typeof validatedData === 'string'
+                        ? JSON.parse(validatedData)
+                        : validatedData;
+                    const parsedAns  = typeof answers === 'string' ? JSON.parse(answers) : answers;
+                    const bName      = parsedAns?.[1]?.replace(/https?:\/\/[^\s,()[\]]+/gi, '').split(/[,—–\-|]/)[0].trim() || 'Your Business';
+                    await runTaskGenerator({
+                        blueprintId: id,
+                        userId: req.user.id,
+                        namedSystems: vdForTasks?.namedSystems || [],
+                        businessName: bName,
+                    });
+                } catch (taskErr) {
+                    console.error('⚠️  Task generation failed (non-fatal):', taskErr.message);
+                }
+            });
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         res.json({
             message: 'Blueprint saved securely to your account.',
             blueprintId: id,
@@ -656,12 +679,87 @@ app.get('/api/blueprint/drive-link', requireStrictAuth, (req, res) => {
 // Get user's saved blueprints
 app.get('/api/blueprints', requireStrictAuth, (req, res) => {
     try {
-        const stmt = db.prepare('SELECT id, created_at, paid_at, assistant_expires_at FROM blueprints WHERE user_id = ? ORDER BY created_at DESC');
+        const stmt = db.prepare('SELECT id, created_at, paid_at, assistant_expires_at, tasks_generated, brand_theme_applied FROM blueprints WHERE user_id = ? ORDER BY created_at DESC');
         const blueprints = stmt.all(req.user.id);
         res.json({ blueprints });
     } catch (err) {
         console.error('Error fetching blueprints:', err);
         res.status(500).json({ error: 'Failed to fetch blueprints.' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TASK API — Get, update, and track task progress
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GET /api/tasks/:blueprintId — return all tasks + progress for this blueprint
+app.get('/api/tasks/:blueprintId', requireStrictAuth, (req, res) => {
+    try {
+        const { blueprintId } = req.params;
+
+        // Verify blueprint belongs to this user
+        const bp = db.prepare('SELECT id FROM blueprints WHERE id = ? AND user_id = ?')
+                     .get(blueprintId, req.user.id);
+        if (!bp) return res.status(404).json({ error: 'Blueprint not found.' });
+
+        const tasks    = db.prepare('SELECT * FROM user_tasks WHERE blueprint_id = ? AND user_id = ? ORDER BY id ASC')
+                           .all(blueprintId, req.user.id);
+        const progress = db.prepare('SELECT * FROM user_progress WHERE blueprint_id = ? AND user_id = ?')
+                           .get(blueprintId, req.user.id);
+
+        res.json({ tasks, progress: progress || { total_tasks: tasks.length, done_tasks: 0 } });
+    } catch (err) {
+        console.error('Error fetching tasks:', err);
+        res.status(500).json({ error: 'Failed to fetch tasks.' });
+    }
+});
+
+// PATCH /api/tasks/:taskId — update status, due_date, notes, calendar_event_id
+app.patch('/api/tasks/:taskId', requireStrictAuth, (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const { status, due_date, notes, calendar_event_id } = req.body;
+
+        // Verify task belongs to this user
+        const task = db.prepare('SELECT * FROM user_tasks WHERE id = ? AND user_id = ?')
+                       .get(taskId, req.user.id);
+        if (!task) return res.status(404).json({ error: 'Task not found.' });
+
+        const now = new Date().toISOString();
+        const completedAt = status === 'done' ? now : (status === 'pending' || status === 'in_progress' ? null : task.completed_at);
+
+        db.prepare(`
+            UPDATE user_tasks SET
+                status            = COALESCE(?, status),
+                due_date          = COALESCE(?, due_date),
+                notes             = COALESCE(?, notes),
+                calendar_event_id = COALESCE(?, calendar_event_id),
+                completed_at      = ?
+            WHERE id = ? AND user_id = ?
+        `).run(status, due_date, notes, calendar_event_id, completedAt, taskId, req.user.id);
+
+        // Recalculate progress
+        const doneTasks = db.prepare(
+            'SELECT COUNT(*) as cnt FROM user_tasks WHERE blueprint_id = ? AND user_id = ? AND status = \'done\''
+        ).get(task.blueprint_id, req.user.id);
+
+        db.prepare(`
+            INSERT INTO user_progress (user_id, blueprint_id, done_tasks, last_active, updated_at)
+            VALUES (?, ?, ?, datetime('now'), datetime('now'))
+            ON CONFLICT(user_id, blueprint_id) DO UPDATE SET
+                done_tasks  = excluded.done_tasks,
+                last_active = excluded.last_active,
+                updated_at  = excluded.updated_at
+        `).run(req.user.id, task.blueprint_id, doneTasks.cnt);
+
+        const updatedTask = db.prepare('SELECT * FROM user_tasks WHERE id = ?').get(taskId);
+        const progress    = db.prepare('SELECT * FROM user_progress WHERE blueprint_id = ? AND user_id = ?')
+                             .get(task.blueprint_id, req.user.id);
+
+        res.json({ task: updatedTask, progress });
+    } catch (err) {
+        console.error('Error updating task:', err);
+        res.status(500).json({ error: 'Failed to update task.' });
     }
 });
 

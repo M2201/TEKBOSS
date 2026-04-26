@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import IntelligenceEngineLoader from './IntelligenceEngineLoader';
 import BlueprintLoader from './BlueprintLoader';
 import PreviewReport from './PreviewReport';
+import BlueprintDashboard from './BlueprintDashboard';
 import ReactMarkdown from 'react-markdown';
 import {
   ChevronRight, Cpu, FileText, Lock, MessageSquare, BarChart3,
@@ -2081,148 +2082,29 @@ export default function App() {
         )}
 
 
-        {/* ── STAGE 4: Full Blueprint ── */}
+        {/* ── STAGE 4: Full Blueprint Dashboard ── */}
         {stage === 4 && (
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-4xl mx-auto py-16 px-8">
-              <header className="text-center mb-12">
-                <div className="inline-flex items-center gap-2 px-5 py-2 bg-emerald-600/10 text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-6 border border-emerald-600/20">
-                  <CheckCircle size={14} /> Blueprint Unlocked
-                </div>
-                <h2 className="text-5xl font-black text-white mb-4 tracking-tighter leading-none">Your AI Blueprint</h2>
-                <p className="text-lg text-slate-400 max-w-2xl mx-auto font-medium leading-relaxed">
-                  Your complete AI Business Operating System — named systems, tool decisions, automation workflows, and your 90-day implementation roadmap.
-                </p>
-              </header>
-
-              {/* DIY Blueprint */}
-              {blueprint?.diyPlaybook && (
-                <div className="mb-12">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-3">
-                      <span className="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-500 flex items-center justify-center border border-blue-500/20"><FileText size={16} /></span>
-                      Your Implementation Blueprint
-                    </h3>
-
-                    {/* Drive folder card — replaces download buttons */}
-                    <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all ${
-                      blueprintDriveLink
-                        ? 'bg-slate-900 border-slate-700'
-                        : 'bg-slate-900/50 border-slate-800'
-                    }`}>
-                      {/* Drive icon (Google Drive wordmark colors) */}
-                      <svg width="18" height="16" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-                        <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                        <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
-                        <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
-                        <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
-                        <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-                        <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 27h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-                      </svg>
-
-                      {blueprintDriveLink ? (
-                        <a
-                          href={blueprintDriveLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          id="blueprint-drive-folder-link"
-                          className="text-xs font-bold text-slate-300 hover:text-white transition-colors"
-                        >
-                          View your files in Google Drive →
-                        </a>
-                      ) : (
-                        <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1.5">
-                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                          Preparing your files…
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="bg-slate-900/60 border border-slate-800 rounded-[2rem] p-10 shadow-xl">
-                    <MarkdownContent content={blueprint.diyPlaybook} />
-                  </div>
-                </div>
-              )}
-
-              {/* SOW */}
-              {blueprint?.sowPlaybook && (
-                <div className="mb-12">
-                  <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-4 flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-lg bg-emerald-600/20 text-emerald-500 flex items-center justify-center border border-emerald-500/20"><ShieldCheck size={16} /></span>
-                    Custom Scope of Work (SOW)
-                  </h3>
-                  <div className="bg-slate-900/60 border border-slate-800 rounded-[2rem] p-10 shadow-xl">
-                    <MarkdownContent content={blueprint.sowPlaybook} />
-                  </div>
-                </div>
-              )}
-
-              {/* Implementation Assistant CTA */}
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-12 text-white relative overflow-hidden shadow-2xl mb-12">
-                <div className="relative">
-                  <div className="w-14 h-14 bg-white/10 rounded-2xl border border-white/20 flex items-center justify-center mb-6">
-                    <Bot size={28} />
-                  </div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-200 mb-3">Included with your blueprint</p>
-                  <h3 className="text-3xl font-black tracking-tighter mb-4 uppercase">Your AI Instructor</h3>
-                  <p className="text-blue-100 text-sm mb-8 max-w-lg leading-relaxed">
-                    Your blueprint-grounded AI Instructor. It walks you through every system, every integration, every automation — step by step. Every response is built around YOUR business, YOUR systems, YOUR implementation roadmap.
-                  </p>
-                  <button
-                    onClick={() => setStage(5)}
-                    className="bg-white text-blue-700 font-black px-10 py-4 rounded-2xl shadow-xl uppercase tracking-widest text-xs hover:bg-blue-50 transition-all flex items-center gap-2"
-                  >
-                    Launch AI Instructor <ArrowRight size={14} />
-                  </button>
-                  <p className="text-blue-200/50 text-[10px] font-bold uppercase tracking-widest mt-4">
-                    60 days included · then $49.99/mo · cancel anytime
-                  </p>
+            {blueprint ? (
+              <BlueprintDashboard
+                blueprint={blueprint}
+                businessName={businessName}
+                onDownloadPdf={downloadPdf}
+                pdfDownloading={pdfDownloading}
+                onLaunchInstructor={() => setStage(5)}
+                blueprintDriveLink={blueprintDriveLink}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-slate-500 text-sm">Loading your blueprint…</p>
                 </div>
               </div>
-
-              {/* DFY Upsell */}
-              <div className="bg-slate-900 border border-slate-800 rounded-[2rem] p-10 shadow-xl">
-                <div className="flex flex-col md:flex-row items-start gap-8">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Star size={18} className="text-amber-400" />
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-400">Done-For-You Option</p>
-                    </div>
-                    <h4 className="text-2xl font-black text-white uppercase tracking-tight mb-3">Prefer Not to Build It Yourself?</h4>
-                    <p className="text-sm text-slate-400 font-medium leading-relaxed mb-4">
-                      Our team can implement your entire AI Blueprint for you — full system setup, automation workflows, integrations, and testing. Each engagement is custom-scoped based on your blueprint.
-                    </p>
-                    {!dfySubmitted ? (
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <input
-                          type="email"
-                          placeholder="Your email for the quote"
-                          value={dfyEmail}
-                          onChange={(e) => setDfyEmail(e.target.value)}
-                          className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-blue-600"
-                        />
-                        <button
-                          onClick={handleDfyRequest}
-                          disabled={!dfyEmail.includes('@')}
-                          className="bg-amber-500 text-slate-950 font-black px-8 py-3 rounded-xl uppercase tracking-widest text-xs hover:bg-amber-400 disabled:opacity-50 transition-all flex-shrink-0"
-                        >
-                          Request Implementation
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="bg-emerald-950/40 border border-emerald-800/30 rounded-xl px-5 py-4 flex items-center gap-3">
-                        <CheckCircle size={18} className="text-emerald-400" />
-                        <p className="text-sm text-emerald-200 font-medium">
-                          Your request has been received. Our team will evaluate your blueprint and provide a custom scope and quote.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         )}
+
 
         {/* ── STAGE 5: AI Instructor ── */}
         {stage === 5 && (

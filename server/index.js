@@ -41,6 +41,8 @@ import {
     isCalendarConfigured, getCalendarAuthUrl, exchangeCodeAndSave,
     getCalendarStatus, createTaskEvent, deleteTaskEvent,
 } from './calendarSync.js';
+import { recordDailyMetrics, scheduleDailyMetrics } from './metricsRecorder.js';
+import { checkDbHealth, scheduleDbMonitor } from './dbMonitor.js';
 import authRouter, { requireStrictAuth, requireAuth } from './auth.js';
 import db from './db.js';
 
@@ -1198,6 +1200,61 @@ app.use((err, req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // START SERVER (skip when imported by Vercel)
 // ─────────────────────────────────────────────────────────────────────────────
+// ADMIN API (protected by ADMIN_SECRET env var)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function requireAdminKey(req, res, next) {
+    const ADMIN_SECRET = process.env.ADMIN_SECRET;
+    const key = req.headers['x-admin-key'] || req.query.adminKey;
+    if (!ADMIN_SECRET || key !== ADMIN_SECRET) {
+        return res.status(403).json({ error: 'Forbidden.' });
+    }
+    next();
+}
+
+// GET /api/admin/metrics?days=30 — last N days of business metrics
+app.get('/api/admin/metrics', requireAdminKey, (req, res) => {
+    const days = Math.min(parseInt(req.query.days || '30', 10), 365);
+    try {
+        const rows = db.prepare(`
+            SELECT * FROM metrics
+            ORDER BY date DESC
+            LIMIT ?
+        `).all(days);
+
+        // Summary totals
+        const latest = rows[0] || {};
+        const summary = {
+            mrr_dollars:          parseFloat(((latest.mrr_cents || 0) / 100).toFixed(2)),
+            dau_today:            latest.dau || 0,
+            blueprints_today:     latest.blueprints_generated || 0,
+            tasks_completed_today: latest.tasks_completed || 0,
+            db_size_mb:           latest.db_size_mb || 0,
+            total_users:          db.prepare('SELECT COUNT(*) AS c FROM users').get()?.c ?? 0,
+            total_blueprints:     db.prepare('SELECT COUNT(*) AS c FROM blueprints WHERE paid_at IS NOT NULL').get()?.c ?? 0,
+            active_subscribers:   db.prepare("SELECT COUNT(*) AS c FROM users WHERE subscription_status = 'active'").get()?.c ?? 0,
+        };
+
+        res.json({ summary, history: rows });
+    } catch (err) {
+        console.error('[Admin] Metrics fetch failed:', err.message);
+        res.status(500).json({ error: 'Failed to fetch metrics.' });
+    }
+});
+
+// POST /api/admin/metrics/snapshot — trigger an immediate metric recording
+app.post('/api/admin/metrics/snapshot', requireAdminKey, (req, res) => {
+    const result = recordDailyMetrics();
+    res.json({ ok: !!result, result });
+});
+
+// GET /api/admin/health — current DB health status
+app.get('/api/admin/health', requireAdminKey, (req, res) => {
+    const health = checkDbHealth();
+    res.json(health);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 if (!process.env.VERCEL) {
     // Always bind 0.0.0.0 so Railway's healthcheck can reach the server.
     // Binding to 127.0.0.1 (localhost-only) makes healthchecks fail in containers.
@@ -1213,7 +1270,12 @@ if (!process.env.VERCEL) {
         console.log(`     /api/generate-preview | /api/generate-blueprint`);
         console.log(`     /api/create-checkout-session | /api/verify-payment`);
         console.log(`     /api/assistant | /api/request-dfy`);
-        console.log(`     /api/blueprints\n`);
+        console.log(`     /api/blueprints | /api/tasks | /api/calendar`);
+        console.log(`     /api/admin/metrics | /api/admin/health\n`);
+
+        // ── Start background schedulers ────────────────────────────────────
+        scheduleDbMonitor();     // hourly SQLite health checks + WAL checkpoint
+        scheduleDailyMetrics();  // midnight snapshot: DAU, MRR, tasks, tokens
     });
 
     // Keep connections alive for up to 5 minutes — Gemini generation can take 30-90s

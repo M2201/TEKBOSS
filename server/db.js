@@ -178,6 +178,8 @@ if (process.env.VERCEL) {
         safeAddColumn('users', 'trial_alert_30_sent', 'INTEGER DEFAULT 0'); // 1 = 30-day "time ticking" alert sent
         safeAddColumn('users', 'google_calendar_token', 'TEXT');           // encrypted OAuth token for Calendar
         safeAddColumn('users', 'google_calendar_connected', 'INTEGER DEFAULT 0');
+        safeAddColumn('users', 'trial_alert_55_sent', 'INTEGER DEFAULT 0'); // 1 = 55-day "5 days left" alert sent
+
 
         // Blueprints table migrations
         safeAddColumn('blueprints', 'validated_data', 'TEXT');

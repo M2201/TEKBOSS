@@ -43,6 +43,7 @@ import {
 } from './calendarSync.js';
 import { recordDailyMetrics, scheduleDailyMetrics } from './metricsRecorder.js';
 import { checkDbHealth, scheduleDbMonitor } from './dbMonitor.js';
+import { scheduleLifecycleChecks, runLifecycleChecks } from './subscriptionLifecycle.js';
 import authRouter, { requireStrictAuth, requireAuth } from './auth.js';
 import db from './db.js';
 
@@ -58,6 +59,8 @@ const stripe = STRIPE_SECRET ? new Stripe(STRIPE_SECRET, {
 }) : null;
 
 app.use(cors({ origin: true, credentials: true }));
+// Stripe webhook must receive raw body BEFORE express.json() parses it
+app.use('/api/stripe-webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(cookieParser());
 
@@ -1147,6 +1150,147 @@ app.post('/api/cancel-subscription', requireAuth, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// STRIPE WEBHOOK — handles subscription lifecycle events from Stripe
+// Requires STRIPE_WEBHOOK_SECRET env var (from Stripe Dashboard → Webhooks)
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/stripe-webhook', async (req, res) => {
+    const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+    let event;
+
+    if (WEBHOOK_SECRET && stripe) {
+        try {
+            event = stripe.webhooks.constructEvent(
+                req.body,
+                req.headers['stripe-signature'],
+                WEBHOOK_SECRET,
+            );
+        } catch (err) {
+            console.error('[Webhook] Signature verification failed:', err.message);
+            return res.status(400).json({ error: 'Invalid webhook signature.' });
+        }
+    } else {
+        // No WEBHOOK_SECRET set — parse without verification (dev/staging only)
+        console.warn('[Webhook] STRIPE_WEBHOOK_SECRET not set — processing unverified event.');
+        try {
+            event = JSON.parse(req.body.toString());
+        } catch {
+            return res.status(400).json({ error: 'Invalid JSON body.' });
+        }
+    }
+
+    const obj = event.data?.object;
+    const userId = obj?.metadata?.userId;
+
+    console.log(`[Webhook] Event: ${event.type} | userId: ${userId || 'unknown'}`);
+
+    try {
+        switch (event.type) {
+            // Subscription became active (trial ended, first charge succeeded)
+            case 'customer.subscription.updated': {
+                const status = obj.status; // 'active' | 'trialing' | 'past_due' | 'canceled' | 'unpaid'
+                const statusMap = {
+                    active:   'active',
+                    trialing: 'trialing',
+                    past_due: 'past_due',
+                    canceled: 'expired',
+                    unpaid:   'expired',
+                };
+                const newStatus = statusMap[status] || status;
+                if (userId) {
+                    db.prepare('UPDATE users SET subscription_status = ? WHERE id = ?').run(newStatus, userId);
+                    console.log(`[Webhook] User ${userId} subscription → ${newStatus}`);
+                }
+                break;
+            }
+            // Subscription deleted (cancelled immediately)
+            case 'customer.subscription.deleted': {
+                if (userId) {
+                    db.prepare("UPDATE users SET subscription_status = 'expired' WHERE id = ?").run(userId);
+                    console.log(`[Webhook] User ${userId} subscription expired (deleted)`);
+                }
+                break;
+            }
+            // Invoice paid — ensure user is marked active
+            case 'invoice.payment_succeeded': {
+                const subId = obj.subscription;
+                if (subId) {
+                    db.prepare(`
+                        UPDATE users SET subscription_status = 'active'
+                        WHERE stripe_subscription_id = ? AND subscription_status NOT IN ('cancelled', 'none')
+                    `).run(subId);
+                }
+                break;
+            }
+            // Invoice failed
+            case 'invoice.payment_failed': {
+                const subId = obj.subscription;
+                if (subId) {
+                    db.prepare(`
+                        UPDATE users SET subscription_status = 'past_due'
+                        WHERE stripe_subscription_id = ?
+                    `).run(subId);
+                    console.log(`[Webhook] Payment failed for subscription ${subId}`);
+                }
+                break;
+            }
+            default:
+                // Ignore unhandled events
+        }
+        res.json({ received: true });
+    } catch (err) {
+        console.error('[Webhook] Handler error:', err.message);
+        res.status(500).json({ error: 'Webhook handler error.' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MONTHLY RE-SUBSCRIBE — for users whose trial expired
+// Creates a Stripe Checkout for $49.99/mo (no trial)
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/create-monthly-checkout', requireStrictAuth, async (req, res) => {
+    if (!stripe) return res.status(500).json({ error: 'Stripe not configured.' });
+    try {
+        const origin = req.headers.origin || `https://tekboss.ai`;
+        const user   = db.prepare('SELECT email, stripe_customer_id FROM users WHERE id = ?').get(req.user.id);
+
+        const session = await stripe.checkout.sessions.create({
+            customer: user?.stripe_customer_id || undefined,
+            customer_email: user?.stripe_customer_id ? undefined : user?.email,
+            payment_method_types: ['card'],
+            line_items: [{
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: 'TEK BOSS AI Instructor — Monthly Access',
+                        description: 'Continued AI Instructor access, task tracking, and calendar sync — $49.99/mo, cancel anytime.',
+                    },
+                    recurring: { interval: 'month' },
+                    unit_amount: 4999,
+                },
+                quantity: 1,
+            }],
+            mode: 'subscription',
+            success_url: `${origin}/?resubscribed=true`,
+            cancel_url:  `${origin}/`,
+            metadata: { userId: req.user.id, product: 'tek-boss-monthly' },
+        });
+
+        res.json({ url: session.url });
+    } catch (err) {
+        console.error('[Resubscribe] Checkout error:', err.message);
+        res.status(500).json({ error: 'Failed to create checkout session.' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MANUAL LIFECYCLE TRIGGER (admin only)
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/admin/lifecycle-check', requireAdminKey, async (req, res) => {
+    await runLifecycleChecks();
+    res.json({ ok: true });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // LEGACY COMPATIBILITY — redirect old endpoints
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/generate-briefing', async (req, res) => {
@@ -1274,8 +1418,9 @@ if (!process.env.VERCEL) {
         console.log(`     /api/admin/metrics | /api/admin/health\n`);
 
         // ── Start background schedulers ────────────────────────────────────
-        scheduleDbMonitor();     // hourly SQLite health checks + WAL checkpoint
-        scheduleDailyMetrics();  // midnight snapshot: DAU, MRR, tasks, tokens
+        scheduleDbMonitor();       // hourly SQLite health checks + WAL checkpoint
+        scheduleDailyMetrics();    // midnight snapshot: DAU, MRR, tasks, tokens
+        scheduleLifecycleChecks(); // daily 9AM: 30-day alert, 55-day alert, expiry
     });
 
     // Keep connections alive for up to 5 minutes — Gemini generation can take 30-90s

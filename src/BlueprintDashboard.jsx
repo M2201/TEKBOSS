@@ -317,8 +317,37 @@ export default function BlueprintDashboard({
   const [progress, setProgress]         = useState({ total_tasks: 0, done_tasks: 0 });
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [calendarStatus, setCalendarStatus] = useState({ connected: false, configured: false });
+  const [subStatus, setSubStatus] = useState({ active: true, status: 'trialing', daysRemaining: 60 });
   const [coins, setCoins]               = useState([]);
   const coinIdRef = useRef(0);
+
+  // ── Load subscription status ───────────────────────────────────────────────────
+  useEffect(() => {
+    fetch('/api/subscription-status', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setSubStatus(d))
+      .catch(() => {});
+    // Also detect ?resubscribed=true param
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('resubscribed') === 'true') {
+      window.history.replaceState({}, '', window.location.pathname);
+      fetch('/api/subscription-status', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => d && setSubStatus(d))
+        .catch(() => {});
+    }
+  }, []);
+
+  const handleResubscribe = useCallback(async () => {
+    try {
+      const res = await fetch('/api/create-monthly-checkout', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const { url } = await res.json();
+      if (url) window.location.href = url;
+    } catch (_) {}
+  }, []);
 
   // ── Detect ?calendar=connected after OAuth redirect ───────────────────────────
   useEffect(() => {
@@ -529,6 +558,40 @@ export default function BlueprintDashboard({
           total={progress.total_tasks || tasks.length}
           businessName={businessName}
         />
+
+        {/* ── Subscription Banners ── */}
+        {/* Warning: ≤30 days left */}
+        {subStatus.active && subStatus.daysRemaining <= 30 && subStatus.daysRemaining > 0 && (
+          <div className="mb-4 flex items-center justify-between p-4 rounded-2xl border border-amber-700/40 bg-amber-950/20">
+            <div className="flex items-center gap-3">
+              <span className="text-amber-400 text-xl">⏱</span>
+              <div>
+                <p className="text-amber-300 text-sm font-bold">{subStatus.daysRemaining} days of AI access remaining</p>
+                <p className="text-slate-500 text-xs">After Day 60, continued access is $49.99/mo. Your blueprint is yours forever.</p>
+              </div>
+            </div>
+            <button onClick={handleResubscribe}
+              className="shrink-0 text-xs font-black uppercase tracking-widest text-white px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 transition-colors">
+              Keep Access
+            </button>
+          </div>
+        )}
+        {/* Expired */}
+        {!subStatus.active && subStatus.status === 'expired' && (
+          <div className="mb-4 flex items-center justify-between p-4 rounded-2xl border border-red-800/40 bg-red-950/20">
+            <div className="flex items-center gap-3">
+              <span className="text-red-400 text-xl">🚨</span>
+              <div>
+                <p className="text-red-300 text-sm font-bold">Your 60-day AI access has ended</p>
+                <p className="text-slate-500 text-xs">Resubscribe for $49.99/mo to restore the AI Instructor, task tracking, and calendar sync.</p>
+              </div>
+            </div>
+            <button onClick={handleResubscribe}
+              className="shrink-0 text-xs font-black uppercase tracking-widest text-white px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 transition-colors">
+              Resubscribe — $49.99/mo
+            </button>
+          </div>
+        )}
 
         {/* ── Calendar Banner ── */}
         {calendarStatus.configured && !calendarStatus.connected && (

@@ -16,7 +16,7 @@
  * (encrypt at rest in a future security pass)
  */
 import { google } from 'googleapis';
-import db from '../db.js';
+import db from './db.js';
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar.events'];
 

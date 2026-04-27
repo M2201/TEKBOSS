@@ -1,0 +1,15 @@
+# nixpacks.toml — Railway build configuration
+# Ensures native Node.js modules (better-sqlite3) compile correctly on Linux
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "python3", "gcc", "gnumake"]
+
+[phases.build]
+cmds = [
+  "npm install",
+  "npm run build",
+  "cd server && npm install"
+]
+
+[start]
+cmd = "cd server && node index.js"

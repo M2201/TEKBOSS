@@ -721,7 +721,8 @@ app.post('/api/request-dfy', async (req, res) => {
 app.post('/api/blueprints', requireStrictAuth, (req, res) => {
     const {
         answers, executiveSummary, enablementStrategy, validatedData,
-        previewReport, diyPlaybook, sowPlaybook
+        previewReport, diyPlaybook, sowPlaybook,
+        brandDna, marketIntel, roiData
     } = req.body;
 
     if (!answers) {

@@ -920,13 +920,20 @@ export default function App() {
     setBlueprintLoading(true);
     setError(null);
     try {
+      const internal = previewData._internal;
+
+      // Stage 5: Generate the orchestration playbook
       const res = await fetch('/api/generate-blueprint', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          executiveSummary: previewData._internal.executiveSummary,
-          enablementStrategy: previewData._internal.enablementStrategy,
-          validatedData: previewData._internal.validatedData,
+          executiveSummary:   internal.executiveSummary,
+          enablementStrategy: internal.enablementStrategy,
+          validatedData:      internal.validatedData,
+          brandDna:           internal.brandDna    || null,
+          marketIntel:        internal.marketIntel || null,
+          roiData:            internal.roiData     || null,
+          growthData:         internal.growthData  || null,
         }),
       });
       if (!res.ok) {
@@ -936,6 +943,27 @@ export default function App() {
       const data = await res.json();
       setBlueprint(data);
       setStage(4);
+
+      // ── Save to account + trigger 4-file Drive package delivery ──────────
+      // Fire-and-forget — never blocks the UI
+      fetch('/api/blueprints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          answers:            answers,
+          executiveSummary:   internal.executiveSummary   || '',
+          enablementStrategy: internal.enablementStrategy || '',
+          validatedData:      internal.validatedData       || null,
+          previewReport:      JSON.stringify(previewData.previewReport || {}),
+          diyPlaybook:        data.diyPlaybook             || '',
+          sowPlaybook:        data.sowPlaybook             || '',
+          brandDna:           internal.brandDna           || data.brandDna    || null,
+          marketIntel:        internal.marketIntel        || data.marketIntel || null,
+          roiData:            internal.roiData            || data.roiData     || null,
+        }),
+      }).catch(err => console.warn('Blueprint save non-fatal:', err.message));
+
     } catch (err) {
       setError(err.message);
     } finally {

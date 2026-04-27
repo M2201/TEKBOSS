@@ -767,6 +767,17 @@ export default function App() {
     const newAnswers = { ...answers, [currentQuestion.id]: trimmed };
     setAnswers(newAnswers);
 
+    // 🌐 Fire background recon on Q1 (business name + website URL)
+    // Pre-fetches the website via Jina Reader while the user answers Q2–Q23.
+    // Completely non-blocking — never delays the UI.
+    if (currentQuestion.id === 1) {
+      fetch('/api/start-recon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q1Answer: trimmed }),
+      }).catch(() => {}); // fire-and-forget
+    }
+
     // Halfway checkpoint at Q12
     if (currentQuestion.id === 12) {
       await new Promise(r => setTimeout(r, 600));

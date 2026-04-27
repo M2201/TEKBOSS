@@ -4,7 +4,7 @@
  * ordered, specific task list stored in user_tasks.
  * Non-fatal: if this fails, it logs and silently moves on.
  */
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { TASK_GENERATOR_PROMPT } from './prompts.js';
 import db from '../db.js';
 
@@ -28,14 +28,7 @@ export async function runTaskGenerator({ blueprintId, userId, namedSystems, busi
     }
 
     try {
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({
-            model: MODEL,
-            generationConfig: {
-                temperature: 0.4,
-                maxOutputTokens: 4096,
-            },
-        });
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
         // Build context block for each Named System
         const systemsContext = namedSystems.map((s, i) => {
@@ -61,8 +54,12 @@ export async function runTaskGenerator({ blueprintId, userId, namedSystems, busi
             systemsContext,
         ].join('\n');
 
-        const result = await model.generateContent(prompt);
-        const text   = result.response.text().trim();
+        const result = await ai.models.generateContent({
+            model: MODEL,
+            contents: prompt,
+            config: { temperature: 0.4, maxOutputTokens: 4096 },
+        });
+        const text = result.text.trim();
 
         // Strip any accidental markdown fences
         const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();

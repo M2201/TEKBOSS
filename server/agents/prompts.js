@@ -131,6 +131,9 @@ OUTPUT FORMAT — Produce a structured Executive Summary with these exact sectio
 ### Business Health Indicators
 [Based on their answers about operations, time allocation, client capacity, and revenue: assess current business health. Use supportive, growth-oriented framing. Categories: Foundation, Operations, Growth Readiness, Scale Potential.]
 
+### Website Intelligence
+[ONLY include this section if live website content was provided in the intake context. If present, analyze: (1) whether the messaging tone on the site aligns with how the owner describes their business in this intake, (2) visual brand signals — font personality (serif vs. sans-serif), imagery style, color energy, (3) CTA clarity and conversion intent on the homepage, (4) any gaps between how they present online vs. how they describe themselves here. If no website content was scraped, omit this section entirely — do not write placeholder text.]
+
 End with: "Executive Summary complete. Ready for AI enablement strategy."`;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -459,12 +462,17 @@ Respond with ONLY the follow-up question text, or ONLY the string "NO_FOLLOWUP".
 // CONTEXT BUILDERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function buildIntakeContext(answers) {
+export function buildIntakeContext(answers, websiteContent = null) {
   const lines = Object.entries(answers).map(([qId, answer]) => {
     const q = QUESTION_MAP[parseInt(qId)];
     return `Q${qId} — ${q || 'Unknown question'}: ${answer}`;
   });
-  return `BUSINESS DISCOVERY INTAKE — RAW ANSWERS\n\n${lines.join('\n\n')}`;
+
+  const websiteSection = websiteContent?.content
+    ? `\n\n---\n\n🌐 LIVE WEBSITE INTELLIGENCE (scraped via Jina Reader):\nURL: ${websiteContent.url}\nFont Personality: ${websiteContent.fontType || 'unknown'}\nHero Image Detected: ${websiteContent.ogImage ? 'Yes — ' + websiteContent.ogImage : 'No'}\n\nWEBSITE CONTENT (first 12,000 chars):\n${websiteContent.content}`
+    : '';
+
+  return `BUSINESS DISCOVERY INTAKE — RAW ANSWERS\n\n${lines.join('\n\n')}${websiteSection}`;
 }
 
 export function buildStrategyContext(executiveSummary) {

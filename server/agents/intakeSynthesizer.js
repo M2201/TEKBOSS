@@ -29,9 +29,9 @@ const FALLBACK_SUMMARY = `## Executive Summary
 ### Desired Outcomes
 - Analysis incomplete`;
 
-export async function runIntakeSynthesizer(apiKey, answers) {
+export async function runIntakeSynthesizer(apiKey, answers, websiteContent = null) {
     const ai = new GoogleGenAI({ apiKey });
-    const userMessage = buildIntakeContext(answers);
+    const userMessage = buildIntakeContext(answers, websiteContent);
 
     try {
         const response = await ai.models.generateContent({

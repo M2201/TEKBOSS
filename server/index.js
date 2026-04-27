@@ -47,6 +47,8 @@ import { scheduleLifecycleChecks, runLifecycleChecks } from './subscriptionLifec
 import { runInstructor } from './agents/instructorAgent.js';
 import authRouter, { requireStrictAuth, requireAuth } from './auth.js';
 import db from './db.js';
+import { startRecon, getReconData } from './agents/reconEngine.js';
+import { sentinelScanAnswers } from './agents/sentinelInterceptor.js';
 
 
 const app = express();
@@ -119,6 +121,22 @@ app.post('/api/follow-up', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// START RECON — fires immediately when user submits Q1 (business name + URL)
+// Triggers a background Jina scrape so data is ready by the time they finish
+// the intake. Completely non-blocking — always returns 200.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/start-recon', (req, res) => {
+    const { q1Answer } = req.body;
+    if (q1Answer) {
+        // Fire-and-forget — do NOT await
+        startRecon(q1Answer).catch(err =>
+            console.warn('⚠️  Recon background task error (non-fatal):', err.message)
+        );
+    }
+    res.json({ started: !!q1Answer });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GENERATE PREVIEW — FREE flow
 // Stages 1→2→3→4: Intake → Strategy → Guardrails → Preview Report
 // Returns the conversion-focused preview (no execution details)
@@ -134,6 +152,25 @@ app.post('/api/generate-preview', async (req, res) => {
         return res.status(500).json({ error: 'GEMINI_API_KEY not configured on server.' });
     }
 
+    // ─── Security: Sentinel scan before ANY AI call ──────────────────────────────
+    const sentinelResult = sentinelScanAnswers(answers);
+    if (sentinelResult.blocked) {
+        console.warn('🚨 SENTINEL: Pipeline blocked — adversarial input detected.');
+        return res.status(400).json({
+            error: 'Input validation failed. Please review your answers and try again.',
+            code: sentinelResult.code,
+        });
+    }
+
+    // ─── Recon: pull cached website data scraped during intake ────────────────
+    const reconData = getReconData(answers[1] || answers['1'] || '');
+    const websiteContent = reconData?.website || null;
+    if (websiteContent) {
+        console.log(`🌐 Website intelligence ready: ${websiteContent.url} (${websiteContent.content?.length || 0} chars)`);
+    } else {
+        console.log('⚠️  No website data cached — proceeding without brand signal enrichment.');
+    }
+
     console.log('\n══════════════════════════════════════════');
     console.log('  🧠 TEK BOSS — PREVIEW GENERATION START');
     console.log('══════════════════════════════════════════\n');
@@ -143,7 +180,7 @@ app.post('/api/generate-preview', async (req, res) => {
     try {
         // Stage 1: Synthesize the Executive Summary
         console.log('📋 Stage 1: Intake Synthesizer running...');
-        const executiveSummary = await runIntakeSynthesizer(API_KEY, answers);
+        const executiveSummary = await runIntakeSynthesizer(API_KEY, answers, websiteContent);
 
         await delay(3000);
 
@@ -196,6 +233,8 @@ app.post('/api/generate-preview', async (req, res) => {
 
         return res.json({
             previewReport,
+            websiteScanned: !!websiteContent,
+            websiteUrl: websiteContent?.url || null,
             // Store internally for later blueprint generation (not sent to user in detail)
             _internal: {
                 executiveSummary,
@@ -228,6 +267,14 @@ app.post('/api/generate-blueprint', async (req, res) => {
 
     if (!API_KEY) {
         return res.status(500).json({ error: 'GEMINI_API_KEY not configured on server.' });
+    }
+
+    // ─── Security: sentinel re-scan the incoming data headers ────────────────
+    // (shallow check — full scan happened at preview stage, this catches replay attacks)
+    const bpSentinel = sentinelScanAnswers(req.body);
+    if (bpSentinel.blocked) {
+        console.warn('🚨 SENTINEL [blueprint]: Blocked adversarial blueprint payload.');
+        return res.status(400).json({ error: 'Input validation failed.', code: bpSentinel.code });
     }
 
     console.log('\n══════════════════════════════════════════');
